@@ -1,0 +1,52 @@
+TXPPM (software & module), ver. 0.0.1: 9.2.2010
+	official release
+
+TXPPM (software update), ver. 0.0.2: 10.2.2010
+	mixing-filter enable option
+
+TXPPM (software update), ver. 0.0.4: 11.7.2010
+	CCPM 120° works
+
+TXPPM (software update), ver. 0.0.5: 22.7.2010
+	Spektrum TX support
+
+TXPPM (software update), ver. 0.1.0: 21.11.2010
+	Network support / ppjoysrv
+
+TXPPM (software update), ver. 0.1.1: 22.11.2010
+	Small improvements
+
+TXPPM (software update), ver. 0.1.2: 28.12.2010
+	README updates
+
+TXPPM (software update), ver. 0.1.3: 30.12.2010
+	Makefile options
+
+TXPPM (software & module), ver. 0.3.0: 2.1.2011
+	GUI and module improvements
+
+TXPPM (software & module && ppjoysrv), ver. 0.3.1: 2.1.2011
+	new package system
+	minor changes
+
+TXPPM (software), ver. 0.3.2: 2.1.2011
+	portaudio header file included
+	makefile update
+
+TXPPM (software), ver. 0.3.3: 3.1.2011
+	audio initialization bug fixed in GUI
+	added support for settings in home directory
+	small optimalisation in GUI
+
+TXPPM (software), ver. 0.3.4: 5.1.2011
+	fixed device mismatch bug
+	added support for channel's check button
+
+TXPPM (software), ver. 0.3.5: 11.1.2011
+	fixed wrong icon installation
+	support for windows platform
+	source code improvements
+	
+TXPPM (software), ver. 0.3.7: 11.10.2013
+	fixed compilation problem
+	support for older pulseaudio 18

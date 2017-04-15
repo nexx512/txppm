@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=TXPPM
+Comment=ppm2tx
+Exec=/usr/bin/ppm2tx
+Terminal=false
+Type=Application
+Icon=icon.png
+Encoding=UTF-8
+Categories=Utility

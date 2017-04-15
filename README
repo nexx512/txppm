@@ -1,0 +1,39 @@
+TX PPM
+------
+
+This software is usable for all RC Transmitters with the PPM modulation
+(mostly all transmitters with trainer/simulator connector).
+
+Purpose of this one is to convert signal from your transmitter
+and make it available as joystick in your operating system.
+You don't have to buy anything else except your transmitter
+adapter + mono/stereo extension cord for your sound card input !
+Or you can make own cable for direct connection into your transmitter
+with specified TX connector (e.g. mini din 4 for Esky Hobby) and mono jack.
+Here is example scheme: http://www.cscomp.cz/kopcolety/f3f/sim/kabel.gif
+Cost of this stuff is around $1 and you can find these parts in home too :)
+For example, DX6i transmitter need only mono or stereo jack (from both sides) cable.
+
+As result you can play all simulators and games which requires joystick interface,
+for example: Heli-X, CRRCsim, FlightGear, ClearView (with wine, ...), etc.
+
+Installation
+-=-=-=-=-=-=-
+
+Visit DOCS page - http://txppm.zexos.org/docs.html
+
+Warning
+-=-=-=-
+
+This software is used without any warranty and author is not responsible
+for possible damage of anything.
+
+Support
+-=-=-=-
+
+Web page - http://txppm.zexos.org
+
+For any questions about this software visit TXPPM FORUM - http://txppm.zexos.org/forum
+For urgent messages, please send an email to: zexx86 [at] zexos [dot] org
+
+I wish I found somebody who's familiar with a packages for various distributions and is able to do one for e.g. Mandriva, OpenSuSE, Fedora, ...

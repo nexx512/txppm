@@ -1,0 +1,1 @@
+KERNEL=="tx", NAME="tx", OWNER="root", GROUP="games", MODE="0646"
