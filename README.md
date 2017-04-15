@@ -1,4 +1,4 @@
-# TXPPM
+# TxPPM
 
 This software is usable for all RC Transmitters with the PPM modulation
 (mostly all transmitters with trainer/simulator connector).
@@ -19,13 +19,12 @@ for example: Heli-X, CRRCsim, FlightGear, ClearView (with wine, ...), etc.
 ## Dependencies
 
 This project requires the ```pulseaudio``` development files.
-
-In a debian derivative this can be installed with
+On a debian derivative this can be installed with
 ```
 $ sudo apt-get install portaudio19-dev
 ```
 
-## Kernel Module Installation
+## Kernel Module installation
 
 Build the kernel module in the ```module``` directory and install the kernel module.
 
@@ -51,8 +50,8 @@ Now you should be able to use a joystick device that represents your transmitter
 
 # Credits
 
-This is a fork of the work Tomas Jedrzejek provided. It worked perfectly unit a recent update.
-That's why I chose to fork his project and fix the comiplation issues.
+This is a fork of the work Tomas Jedrzejek provided. It worked perfectly
+until a recent update of my system. That's why I chose to fork his project and fix the compilation issues.
 
 # Disclaimer
 
