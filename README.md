@@ -20,6 +20,11 @@ for example: Heli-X, CRRCsim, FlightGear, ClearView (with wine, ...), etc.
 
 This project requires the ```pulseaudio``` development files.
 
+In a debian derivative this can be installed with
+```
+$ sudo apt-get install portaudio19-dev
+```
+
 ## Kernel Module Installation
 
 Build the kernel module in the ```module``` directory and install the kernel module.
