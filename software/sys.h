@@ -2,6 +2,7 @@
  *  PPM to TX
  *  Copyright (C) 2010  Tomas 'ZeXx86' Jedrzejek (zexx86@zexos.org)
  *  Copyright (C) 2011  Tomas 'ZeXx86' Jedrzejek (zexx86@zexos.org)
+ *  Copyright (C) 2017  Jürgen Diez (j.diez@qb-x.de)
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -21,10 +22,6 @@
 #ifndef __sys__
 #define __sys__
 
-extern int client_connect (char *address, int port);
-extern int client_send (int fd, char *s, unsigned l);
-extern int client_recv (int fd, char *s, unsigned l);
-extern int client_close (int fd);
 extern int device_open ();
 extern int device_write (int fd);
 extern int device_close (int fd);

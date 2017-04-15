@@ -1,7 +1,8 @@
 /*
- *  PPM to TX
+ *  PPM to TX Terminal program
  *  Copyright (C) 2010  Tomas 'ZeXx86' Jedrzejek (zexx86@zexos.org)
  *  Copyright (C) 2011  Tomas 'ZeXx86' Jedrzejek (zexx86@zexos.org)
+ *  Copyright (C) 2017  Jürgen Diez (j.diez@qb-x.de)
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,89 +23,71 @@
 #include "ppm.h"
 #include "sys.h"
 
-void outdate_version (char *ver)
-{
-	printf ("> Your version is outdate ! Please update to %s\n", ver);
-}
-
 int main (int argc, char **argv)
 {
-	printf ("TXPPM - ppm2tx v." VERSION " by Tomas Jedrzejek - ZeXx86\n");
+	printf ("TXPPM - ppm2tx v." VERSION " by Jürgen Diez\n");
 
 	if (argc < 3) {
-		printf ("Syntax: %s <deviceid> <mixing> [joyserver_ip]\n\nList of available devices:\n", argv[0]);
-		
+		printf ("Syntax: %s <deviceid> <mixing>\n\nList of available devices:\n", argv[0]);
+
 		int n = list_audio ();
-		
+
 		int i;
 		for (i = 0; i < n; i ++) {
 			char *s = get_audio_name (i);
-			
+
 			if (s)
 				printf("DeviceID (%d) name: %s.\n", i, s);
 		}
-		
+
 		return 0;
 	}
 
 	int fd = 0;
 
-	if (argc <= 3) {	/* We want to use Linux kernel module */
-		fd = device_open ();
+	fd = device_open ();
 
-		if (fd < 0)
-			return -1;
-	} else {			/* We want to use PPJoyServer for Virtual Joystick */
-		fd = client_connect (argv[3], PORT);
-		
-		if (fd < 0) {
-			printf ("ERROR -> Failed to connect PPJoyServer '%s':%d\n", argv[3], PORT);
-			return -1;
-		}
-		
-		printf ("> PPJoy Server '%s'\n", argv[3]);
-	}
-  
+	if (fd < 0)
+		return -1;
+
 	int mix = atoi (argv[2]);
-	
+
 	if (mix)
 		printf ("> Transmitter mixing-filter enabled\n");
-	
+
 	int dev = atoi (argv[1]);
-	
+
 	if (dev < 0)
 		goto end;
-	
+
 	int r = init_audio (dev);
-  
+
 	if (r == -1) {
 		printf ("ERROR -> You've selected wrong input device ID, choose one from the list\n");
 		goto end;
 	}
-	
+
 	printf ("> Audio initialization -> OK\n");
-	
+
 	r = setup_audio (dev);
-	
+
 	if (r == -1) {
 		printf ("ERROR -> Audio setup -> FAIL : DeviceID(%d)\n", dev);
 		goto end;
 	}
 
 	app_exit = 0;
-	
-	check_version (&outdate_version);
-	
+
 #ifndef __WIN32__
 	init_sig ();
-#endif	
+#endif
 	ppm_decode (fd, mix);
 end:
 	device_close (fd);
-	
+
 	close_audio ();
-	
+
 	printf ("> Closing audio\n");
-	
+
 	return 0;
-} 
+}

@@ -50,3 +50,7 @@ TXPPM (software), ver. 0.3.5: 11.1.2011
 TXPPM (software), ver. 0.3.7: 11.10.2013
 	fixed compilation problem
 	support for older pulseaudio 18
+
+TXPPM (software), ver. 0.3.8: <Date>
+	Removed networking code
+	Remove ppjoyserver support

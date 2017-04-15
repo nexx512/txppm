@@ -2,6 +2,7 @@
  *  PPM to TX
  *  Copyright (C) 2010  Tomas 'ZeXx86' Jedrzejek (zexx86@zexos.org)
  *  Copyright (C) 2011  Tomas 'ZeXx86' Jedrzejek (zexx86@zexos.org)
+ *  Copyright (C) 2017  Jürgen Diez (j.diez@qb-x.de)
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -50,7 +51,7 @@ static gboolean progress_timeout (gpointer data)
 	int i;
 	for (i = 0; i < 6; i ++) {
 		ch[i] = (float) (c[i]+512)/1000;
-		
+
 		if (ch[i] < 0)
 			ch[i] = 0;
 		else if (ch[i] > 1)
@@ -58,21 +59,21 @@ static gboolean progress_timeout (gpointer data)
 		/* Set the new value */
 		gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (pbar_ch[i]), ch[i]);
 	}
-  
+
 	/* As this is a timeout function, return TRUE so that it
 	* continues to get called */
 	return TRUE;
-} 
+}
 
 static void thread_decode (void *ptr)
 {
 	int *param = (int *) ptr;
-      
+
 	decode = 1;
 	ppm_decode (param[0], param[1]);
 	decode = 0;
 	gtk_button_set_label (GTK_BUTTON (button), "Start");
-	
+
 	pthread_exit (0); /* exit */
 }
 
@@ -80,7 +81,7 @@ static void stop ()
 {
 	device_close (fd);
 	close_audio ();
-	printf ("> Closing audio\n"); 
+	printf ("> Closing audio\n");
 }
 
 static int settings_save (int dev, int mixer, int chshow)
@@ -88,14 +89,14 @@ static int settings_save (int dev, int mixer, int chshow)
 	/** WRITE SETTINGS **/
 #ifndef __WIN32__
 	const char *home = getenv ("HOME");
-	
+
 	if (!home)
 		return -1;
 
 	unsigned l = strlen (home);
 	unsigned l2 = strlen (SETTINGS_FILE);
 	char *s = (char *) malloc (l+l2+2);
-	
+
 	if (!s)
 		return -1;
 
@@ -103,14 +104,14 @@ static int settings_save (int dev, int mixer, int chshow)
 	s[l] = '/';
 	memcpy (s+l+1, SETTINGS_FILE, l2);
 	s[l+l2+1] = '\0';
-	
+
 	FILE *f = fopen (s, "w+");
 #else
 	char *s = (char *) malloc (65);
-	
+
 	if (!s)
 		return -1;
-	
+
 	FILE *f = fopen (SETTINGS_FILE, "w+");
 #endif
 	if (f) {
@@ -121,7 +122,7 @@ static int settings_save (int dev, int mixer, int chshow)
 		free (s);
 		return -1;
 	}
-	
+
 	free (s);
 
 	return 0;
@@ -132,14 +133,14 @@ static int settings_load (int *dev, int *mixer, int *chshow)
 	/** WRITE SETTINGS **/
 #ifndef __WIN32__
 	const char *home = getenv ("HOME");
-	
+
 	if (!home)
 		return -1;
 
 	unsigned l = strlen (home);
 	unsigned l2 = strlen (SETTINGS_FILE);
 	char *s = (char *) malloc (l+l2+2);
-	
+
 	if (!s)
 		return -1;
 
@@ -151,10 +152,10 @@ static int settings_load (int *dev, int *mixer, int *chshow)
 	FILE *f = fopen (s, "r");
 #else
 	char *s = (char *) malloc (65);
-	
+
 	if (!s)
 		return -1;
-	
+
 	FILE *f = fopen (SETTINGS_FILE, "r");
 #endif
 	if (f) {
@@ -182,14 +183,14 @@ static void start (GtkWidget *widget, gpointer data )
 		gtk_main_quit ();
 		return;
 	}
-	
+
 	g_print ("Starting decoding\n");
-	
+
 	int dev = gtk_combo_box_get_active (GTK_COMBO_BOX (device));
-	
+
 	if (dev == -1)
 		return;
-	
+
 	fd = device_open ();
 
 	if (fd < 0) {
@@ -198,30 +199,30 @@ static void start (GtkWidget *widget, gpointer data )
 	}
 
 	int r = init_audio (devices[dev]);
-  
+
 	if (r == -1) {
 		printf ("ERROR -> You've selected wrong input device ID, choose one from the list\n");
 		return;
 	}
-	
+
 	printf ("> Audio initialization -> OK\n");
-	
+
 	r = setup_audio (devices[dev]);
-	
+
 	if (r == -1) {
 		printf ("ERROR -> Audio setup -> FAIL : DeviceID(%d)\n", devices[dev]);
 		return;
 	}
-	
+
 	int mixer = gtk_combo_box_get_active (GTK_COMBO_BOX (mix));
 
 	app_exit = 0;
 
 	param[0] = fd;
 	param[1] = mixer;
-	
+
 	int chshow = 0;
-	
+
 	if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (channels)) == TRUE) {
 		g_timeout_add (40, progress_timeout, NULL);
 		gtk_widget_show (pbar_ch[0]);
@@ -234,10 +235,10 @@ static void start (GtkWidget *widget, gpointer data )
 		chshow = 1;
 	} else
 		gtk_widget_hide (frame3);
-	
+
 	gtk_button_set_label (GTK_BUTTON (button), "Stop");
 	pthread_create (&thread, NULL, (void *) &thread_decode, (void *) &param);
-	
+
 	/** SAVE SETTINGS **/
 	settings_save (devices[dev], mixer, chshow);
 }
@@ -259,30 +260,21 @@ static void destroy (GtkWidget *widget,  gpointer data)
 	gtk_main_quit ();
 }
 
-void outdate_version (char *ver)
-{
-	gdk_threads_enter ();
-	gtk_window_set_title (GTK_WINDOW (window), "(OUTDATE) TXPPM - ppm2tx v." VERSION);
-	gdk_threads_leave ();
-	
-	printf ("> Your version is outdate ! Please update to %s\n", ver);
-}
-
 int main (int argc, char *argv[])
 {
-	printf ("TXPPM - ppm2tx v." VERSION " by Tomas Jedrzejek - ZeXx86\n");
+	printf ("TXPPM - ppm2tx v." VERSION " by Jürgen Diez\n");
 
 	int dev = -1, mixer = -1, chshow = 1;
 	/** LOAD SETTINGS **/
 	settings_load (&dev, &mixer, &chshow);
-	
+
 	/* This is called in all GTK applications. Arguments are parsed
 	* from the command line and are returned to the application. */
 	gtk_init (&argc, &argv);
-	
+
 	/* create a new window */
 	window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-	
+
 	gtk_window_set_title (GTK_WINDOW (window), "TXPPM - ppm2tx v." VERSION);
 
 	/* When the window is given the "delete-event" signal (this is given
@@ -291,22 +283,22 @@ int main (int argc, char *argv[])
 	* as defined above. The data passed to the callback
 	* function is NULL and is ignored in the callback function. */
 	g_signal_connect (window, "delete-event", G_CALLBACK (delete_event), NULL);
-	
-	/* Here we connect the "destroy" event to a signal handler.  
+
+	/* Here we connect the "destroy" event to a signal handler.
 	* This event occurs when we call gtk_widget_destroy() on the window,
 	* or if we return FALSE in the "delete-event" callback. */
 	g_signal_connect (window, "destroy", G_CALLBACK (destroy), NULL);
-	
+
 	/* Sets the border width of the window. */
 	gtk_container_set_border_width (GTK_CONTAINER (window), 10);
-	
+
 	/** VBOX **/
 	GtkWidget *box1;
 	box1 = gtk_vbox_new (FALSE, 0);
 
 	/* Put the box into the main window. */
 	gtk_container_add (GTK_CONTAINER (window), box1);
-	
+
 	/** IMAGE **/
 	GtkWidget *image;
 #ifndef __WIN32__
@@ -363,7 +355,7 @@ int main (int argc, char *argv[])
 		gtk_combo_box_set_active (GTK_COMBO_BOX (device), atoi (argv[1]));
 	else
 		gtk_combo_box_set_active (GTK_COMBO_BOX (device), dev == -1 ? n-1 : dev);
-	
+
 	gtk_container_add (GTK_CONTAINER (frame), device);
 
 	/** FRAME2 **/
@@ -371,14 +363,14 @@ int main (int argc, char *argv[])
 	gtk_box_pack_start (GTK_BOX (box1), frame2, FALSE, FALSE, 0);
 	/* Set the frame's label */
 	gtk_frame_set_label (GTK_FRAME (frame2), "CCPM (mix)");
-	
+
 	/** MIX **/
 	mix = gtk_combo_box_new_text ();
-	
+
 	gtk_combo_box_append_text (GTK_COMBO_BOX (mix), "No mix (H1)");
 	gtk_combo_box_append_text (GTK_COMBO_BOX (mix), "CCPM 120°");
 	gtk_combo_box_append_text (GTK_COMBO_BOX (mix), "CCPM 120° (Spektrum)");
-	
+
 	if (argc > 2)
 		gtk_combo_box_set_active (GTK_COMBO_BOX (mix), atoi (argv[2]));
 	else
@@ -391,13 +383,13 @@ int main (int argc, char *argv[])
 	gtk_box_pack_start (GTK_BOX(box1), frame3, FALSE, FALSE, 0);
 	/* Set the frame's label */
 	gtk_frame_set_label (GTK_FRAME (frame3), "Channels");
-	
+
 	/** HBOX **/
 	GtkWidget *box2;
 	box2 = gtk_hbox_new (FALSE, 0);
 
 	gtk_container_add (GTK_CONTAINER (frame3), box2);
-	
+
 	channels = gtk_check_button_new_with_label ("Display");
 
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (channels), chshow ? TRUE : FALSE);
@@ -418,10 +410,10 @@ int main (int argc, char *argv[])
 	* function start() passing it NULL as its argument.  The start()
 	* function is defined above. */
 	g_signal_connect (button, "clicked", G_CALLBACK (start), NULL);
-	
+
 	/* This packs the button into the window (a gtk container). */
 	gtk_box_pack_start (GTK_BOX (box1), button, FALSE, FALSE, 5);
-	
+
 	/* The final step is to display this newly created widget. */
 	if (pixbuf)
 		gtk_widget_show (image);
@@ -439,9 +431,7 @@ int main (int argc, char *argv[])
 	gtk_window_set_resizable (GTK_WINDOW (window), FALSE);
 
 	gdk_threads_init ();
-	
-	check_version (&outdate_version);
-	
+
 	/* All GTK applications must have a gtk_main(). Control ends here
 	* and waits for an event to occur (like a key press or
 	* mouse event). */

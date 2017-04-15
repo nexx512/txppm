@@ -21,14 +21,9 @@
 #ifndef __ppm__
 #define __ppm__
 
-#define VERSION			"0.3.7"
-
-#define PORT			2600
+#define VERSION			"0.3.8"
 
 #define SETTINGS_FILE		".txppm"
-
-#define SERVER_INFO		"txppm.spirit-system.com"
-#define SERVER_INFO_PORT	2601
 
 extern int c[12];
 extern int app_exit;
@@ -38,7 +33,6 @@ extern int init_audio (int dev);
 extern int close_audio ();
 extern int setup_audio (int dev);
 extern int init_sig (void);
-extern int client_connect (char *address, int port);
 extern void ppm_decode (int fd, int mix);
 
 #endif

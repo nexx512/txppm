@@ -2,6 +2,7 @@
  *  PPM to TX
  *  Copyright (C) 2010  Tomas 'ZeXx86' Jedrzejek (zexx86@zexos.org)
  *  Copyright (C) 2011  Tomas 'ZeXx86' Jedrzejek (zexx86@zexos.org)
+ *  Copyright (C) 2017  Jürgen Diez (j.diez@qb-x.de)
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -44,21 +45,21 @@ void term_signal (int z)
 
 int init_sig (void)
 {
-	struct sigaction sv;  
-	
+	struct sigaction sv;
+
 	memset (&sv, 0, sizeof (struct sigaction));
 	sv.sa_flags = 0;
 	sigemptyset (&sv.sa_mask);
-	
+
 	sv.sa_handler = SIG_IGN;
 	/* Don't want broken pipes to kill the hub.  */
 	sigaction (SIGPIPE, &sv, NULL);
-	
+
 	/* ...or any defunct child processes.  */
 	sigaction (SIGCHLD, &sv, NULL);
-	
+
 	sv.sa_handler = term_signal;
-	
+
 	/* Also, shut down properly.  */
 	sigaction (SIGTERM, &sv, NULL);
 	sigaction (SIGINT, &sv, NULL);
@@ -70,45 +71,6 @@ struct hostent *host;
 struct sockaddr_in serverSock;
 socklen_t addrlen;
 
-int client_connect (char *address, int port)
-{
-	  int fd;
-  
-	  if ((host = gethostbyname (address)) == NULL) {
-		  printf ("> Invalid address: %s\n", address);
-		  return -1;
-	  }
-
-	  if ((fd = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
-		  printf ("> socket () error\n");
-		  return -1;
-	  }
-
-	  serverSock.sin_family = AF_INET;
-	  serverSock.sin_port = htons (port);
-	  memcpy (&(serverSock.sin_addr), host->h_addr, host->h_length);
-	  
-	  if (connect (fd, (struct sockaddr *) &serverSock, sizeof (serverSock)) == -1)
-		  return -1;
-  
-	  return fd;
-}
-
-int client_send (int fd, char *s, unsigned l)
-{
-	return send (fd, s, l, 0);
-}
-
-int client_recv (int fd, char *s, unsigned l)
-{
-	return recv (fd, s, l, 0);
-}
-
-int client_close (int fd)
-{
-	close (fd);
-}
-
 int device_open ()
 {
 	int fd = open ("/dev/tx", O_WRONLY);
@@ -117,7 +79,7 @@ int device_open ()
 		printf ("ERROR -> /dev/tx device is missing !\nDo you forget to create it over mknod or you need permission for write into this device, try chmod ?\n");
 		return -1;
 	}
- 
+
  	printf ("> /dev/tx\n");
 
 	return fd;
@@ -126,12 +88,12 @@ int device_open ()
 int device_write (int fd)
 {
 	int r = write (fd, &c, sizeof (int) * 12);
-	
+
 	if (r != sizeof (int) * 12) {
 		app_exit = 1;
-		printf ("ERROR -> Data are incomatibile length !\n");
+		printf ("ERROR -> Data are incompatibile length !\n");
 	}
-	
+
 	return 0;
 }
 
@@ -171,52 +133,6 @@ struct sockaddr_in serverSock;
 typedef int socklen_t;
 socklen_t addrlen;
 
-int client_connect (char *address, int port)
-{
-	int fd;
-	WORD wVersionRequested = MAKEWORD (2,0);
-	
-	if (WSAStartup (wVersionRequested, &data) != 0) {
-		printf ("> WinSock initialization error\n");
-		return -1;
-	}
-  
-	if ((host = gethostbyname (address)) == NULL) {
-		printf ("> Invalid address: %s\n", address);
-		return -1;
-	}
-
-	if ((fd = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP)) == -1) {
-		printf ("> socket () error\n");
-		return -1;
-	}
-
-	serverSock.sin_family = AF_INET;
-	serverSock.sin_port = htons (port);
-	memcpy (&(serverSock.sin_addr), host->h_addr, host->h_length);
-	  
-	if (connect (fd, (struct sockaddr *) &serverSock, sizeof (serverSock)) == -1)
-		return -1;
-  
-	return fd;
-}
-
-int client_send (int fd, char *s, unsigned l)
-{
-	return send (fd, s, l, 0);
-}
-
-int client_recv (int fd, char *s, unsigned l)
-{
-	return recv (fd, s, l, 0);
-}
-
-int client_close (int fd)
-{
-	closesocket (fd);
-	WSACleanup ();
-}
-
 int device_open ()
 {
 	DevName = "\\\\.\\PPJoyIOCTL1";
@@ -241,7 +157,7 @@ int device_open ()
 	printf ("PPJoy virtual joystick Server for TXPPM software -- controlling virtual joystick 1.\n\n");
 
 	Analog[0] = Analog[1] = Analog[2] = Analog[3] = (PPJOY_AXIS_MIN+PPJOY_AXIS_MAX)/2;
-	
+
 	return 0;
 }
 
@@ -253,7 +169,7 @@ int device_write (int fd)
 	Analog[3] = c[3] + (PPJOY_AXIS_MIN+PPJOY_AXIS_MAX)/2;
 	Analog[4] = c[4] + (PPJOY_AXIS_MIN+PPJOY_AXIS_MAX)/2;
 	Analog[5] = c[5] + (PPJOY_AXIS_MIN+PPJOY_AXIS_MAX)/2;
-	
+
 	if (!DeviceIoControl (h, IOCTL_PPORTJOY_SET_STATE, &JoyState, sizeof (JoyState), NULL, 0, &RetSize, NULL)) {
 		rc = GetLastError ();
 
@@ -264,7 +180,7 @@ int device_write (int fd)
 
 		printf ("DeviceIoControl error %d\n", rc);
 	}
-	
+
 	return 0;
 }
 
@@ -273,51 +189,3 @@ int device_close (fd)
 	CloseHandle (h);
 }
 #endif
-
-static void thread_check (void *ptr)
-{
-	if (!ptr)
-		goto end;
-  
-	int fd = client_connect (SERVER_INFO, SERVER_INFO_PORT);
-	
-	if (fd < 0)
-		goto end;
-#ifndef __WIN32__
-# ifdef __linux__
-	char s = 0;
-# else
-	char s = 1;
-# endif
-#else
-	char s = 2;
-#endif	
-	if (client_send (fd, &s, 1) < 0) {
-		client_close (fd);
-		goto end;
-	}
-	  
-	char ver[8];
-	int r = client_recv (fd, ver, 8);
-	
-	client_close (fd);
-
-	if (r < 1)
-		goto end;
-	else
-	    ver[r] = '\0';
-
-	typedef void (*callback) (char *v); 
-	callback f = (callback) ptr;
-
-	if (strcmp (ver, VERSION))
-		f (ver);
-end:
-	pthread_exit (0); /* exit */
-}
-
-void check_version (void *ptr)
-{
-	pthread_t thread;
-	pthread_create (&thread, NULL, (void *) &thread_check, ptr);
-}
