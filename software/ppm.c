@@ -20,7 +20,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#ifndef __WIN32__
+#include <portaudio.h>
+#else
 #include "lib/portaudio.h"
+#endif
 #include "sys.h"
 
 #define SAMPLE_RATE		44100
@@ -65,16 +69,16 @@ int get_data (float *values, int *nvalues)
 
 	max = -100000;
 	min = 100000;
-	
+
 	for (i = 0; i < nval; i ++) {
 		x = sig[i];
-		
+
 		if (x > max)
 			max = x;
 		if (x < min)
 			min = x;
 	}
-	
+
 	moy = (max + min) / 2;
 
 	x = 0;
@@ -94,7 +98,7 @@ int get_data (float *values, int *nvalues)
 			else if (chanel > 0)
 				break; //end
 		}
-		
+
 		px = x;
 		x = sig[j ++];
 
@@ -106,7 +110,7 @@ int get_data (float *values, int *nvalues)
 			dt = (moy - px) / (x - px);
 
 			if (chanel >= 0) {
-				if (chanel == 0 && i < (nval / 2)) {  
+				if (chanel == 0 && i < (nval / 2)) {
 					synchro_index = j;  //for OSCILLO  synchro
 				}
 
@@ -135,7 +139,7 @@ int get_data_audio (float *values)
 
 	static float vals[11];
 	int i,n;
-	
+
 	/*
 	* there is no need to update values more than 50 times a second
 	* then lest check here every (SAMPLE_RATE/50) recorded samples
@@ -144,10 +148,10 @@ int get_data_audio (float *values)
 	Pa_Sleep (1); // not sure this is usefull
 
 	n = AudioData.SamplesCounter;
-	
+
 	if (n - AudioData.LastSamplesCounter > SAMPLE_RATE / 50) {
 		AudioData.LastSamplesCounter = n;		// lets update values
-		
+
 		if (get_data (vals, &n)) {
 			for (i = 0; i < 11; i ++)
 				values[i] = vals[i];
@@ -179,7 +183,7 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 	paAudioData *data = (paAudioData *) userData;
 	SAMPLE *rptr = (float *) inputBuffer;
 	SAMPLE *wptr;
-      
+
 	unsigned long i;
 	unsigned long framesLeft = data->frameSize - data->frameIndex;
 
@@ -223,15 +227,15 @@ int list_audio ()
 {
 	if (Pa_Initialize () != paNoError)
 		return -1;
-	  
+
 	const PaDeviceInfo *pdi;
 	int num_devs;
-	
+
 #if PORTAUDIO == 18
 	num_devs = Pa_CountDevices ();
 #else
 	num_devs = Pa_GetDeviceCount ();
-#endif	
+#endif
 	return num_devs;
 }
 
@@ -241,7 +245,7 @@ char *get_audio_name (int id)
 
 	if (pdi->maxInputChannels >= NUM_CHANNELS)
 		return (char *) pdi->name;
-	
+
 	return 0;
 }
 
@@ -249,26 +253,26 @@ int init_audio (int dev)
 {
 	if (Pa_Initialize () != paNoError)
 		return -1;
-	  
+
 	const PaDeviceInfo *pdi;
 	int num_devs;
-	
+
 #if PORTAUDIO == 18
 	num_devs = Pa_CountDevices();
 #else
 	num_devs = Pa_GetDeviceCount();
 #endif
-	
+
 	int ret = -1;
-	
+
 	int i;
 	for (i = 0; i < num_devs; i ++) {
 		pdi = Pa_GetDeviceInfo (i);
-		
+
 		/* we've found selected device */
 		if (i == dev) {
 			ret = 0;
-			
+
 			if (pdi->maxInputChannels >= NUM_CHANNELS)
 				printf("DeviceID (%d) name: %s.\n", i, pdi->name);
 		}
@@ -280,7 +284,7 @@ int init_audio (int dev)
 int close_audio ()
 {
 	Pa_Terminate();
-	
+
 	return 0;
 }
 
@@ -292,7 +296,7 @@ int setup_audio (int dev)
 	PaError err;
 
 	const PaDeviceInfo *pdi = Pa_GetDeviceInfo (dev);
-  
+
 	/*  configure device */
 	AudioData.frameSize = NUM_SAMPLES; /* Record for a few samples. */
 	AudioData.frameIndex = 0;
@@ -305,7 +309,7 @@ int setup_audio (int dev)
 		printf ("ERROR -> Could not allocate record array\n");
 		exit (1);
 	}
-	
+
 	int i;
 	for (i = 0; i < AudioData.frameSize; i ++)
 		AudioData.recordedSamples[i] = 0;
@@ -350,29 +354,29 @@ int setup_audio (int dev)
 		goto error;
 
 	err = Pa_StartStream (stream);
-	
+
 	if (err != paNoError)
 		goto error;
-	
+
 	return 0;
 
 error:
 	close_audio ();
-	
+
 	fprintf (stderr, "An error occured while using the portaudio stream in audio_rc_open\n");
 	fprintf (stderr, "Error number: %d\n", err);
 	fprintf (stderr, "Error message: %s\n", Pa_GetErrorText (err));
-	
+
 	return -1;
 }
 
 void ppm_decode (int fd, int mix)
 {
 	printf ("> PPM decoding is running\n");
-	
+
 	while (!app_exit) {
 		get_data_audio ((float *) &channels);
-		
+
 		if (mix == 1) {
 /*
 			CCPM 120° - decode
@@ -381,7 +385,7 @@ void ppm_decode (int fd, int mix)
 			Aileron = -Pitch + Ch1 – 0.5*Elevator
 */
 			float pitch = (channels[0]+channels[1]-channels[5])/3;
-			
+
 			c[5] = (int) (pitch * 1024);
 			c[1] = (int) ((-pitch + channels[1]) * 1024);
 			c[0] = (int) ((-pitch + channels[0] + 0.5*(-pitch + channels[1])) * 1800);
@@ -405,7 +409,7 @@ void ppm_decode (int fd, int mix)
 			c[4] = (int) (channels[4] * 512);
 			c[5] = (int) (channels[5] * 512);
 		}
-		
+
 		if (device_write (fd) == -1)
 			break;
 #ifdef DEBUG

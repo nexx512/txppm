@@ -1,4 +1,4 @@
-CC	=WINEPREFIX=/home/tomas/.winedevcpp/ wine ~/.winedevcpp/drive_c/Dev-Cpp/bin/gcc.exe
+CC	=WINEPREFIX=~/.winedevcpp/ wine ~/.winedevcpp/drive_c/Dev-Cpp/bin/gcc.exe
 CFLAGS	?=-Wall -O2
 
 CCFLAGS =-c -s -I. $(CFLAGS)
@@ -26,4 +26,3 @@ clean:
 $(BIN):	$(OBJS) $(MAKEDEP)
 	@printf "  LD  $(subst $(shell pwd)/,,$(@))\n";
 	$(Q)$(CC) -s $(OBJS) -o $(BIN) -L"C:/Dev-Cpp/lib" -lws2_32
- 
