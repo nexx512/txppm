@@ -18,7 +18,7 @@ for example: Heli-X, CRRCsim, FlightGear, ClearView (with wine, ...), etc.
 
 ## Dependencies
 
-This project requires the ```pulseaudio``` development files.
+This project requires the ```portaudio``` development files.
 On a debian derivative this can be installed with
 ```
 $ sudo apt-get install portaudio19-dev
@@ -55,8 +55,9 @@ until a recent update of my system. That's why I chose to fork his project and f
 
 # Disclaimer
 
-This software is used without any warranty and author is not responsible
-for possible damage of anything.
+This program comes with ABSOLUTELY NO WARRANTY.
+The author of this software can not be held liable for any damage caused by this program or instructions given.
+For details check the LICENSE file bundled with this software.
 
 As I don't have a Windows PC or Mac for development, I can not guarantee that this
 project compiles on a Windows PC or Mac. If you are intereted in maintaining these

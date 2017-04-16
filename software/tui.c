@@ -26,6 +26,11 @@
 int main (int argc, char **argv)
 {
 	printf ("TXPPM - ppm2tx v." VERSION " by Jürgen Diez\n");
+	printf ("This program comes with ABSOLUTELY NO WARRANTY; "
+		"for details see the LICENSE shipped with this software.\n"
+		"This is free software, and you are welcome to redistribute it "
+		"under certain conditions; check the LICENSE file shipped with "
+		"this software for details.");
 
 	if (argc < 3) {
 		printf ("Syntax: %s <deviceid> <mixing>\n\nList of available devices:\n", argv[0]);

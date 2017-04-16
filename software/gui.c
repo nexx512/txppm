@@ -263,6 +263,11 @@ static void destroy (GtkWidget *widget,  gpointer data)
 int main (int argc, char *argv[])
 {
 	printf ("TXPPM - ppm2tx v." VERSION " by Jürgen Diez\n");
+	printf ("This program comes with ABSOLUTELY NO WARRANTY; "
+		"for details see the LICENSE shipped with this software.\n"
+		"This is free software, and you are welcome to redistribute it "
+		"under certain conditions; check the LICENSE file shipped with "
+		"this software for details.");
 
 	int dev = -1, mixer = -1, chshow = 1;
 	/** LOAD SETTINGS **/

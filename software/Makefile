@@ -42,6 +42,7 @@ install:
 	install $(BIN) $(PREFIX)/bin/
 	mkdir -p $(PREFIX)/share/txppm
 	install logo.png $(PREFIX)/share/txppm/
+	install ../LICENSE $(PREFIX)/share/txppm/
 	install icon.png /usr/share/pixmaps/
 	install txppm.desktop /usr/share/applications/
 
