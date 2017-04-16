@@ -73,5 +73,5 @@ The author of this software can not be held liable for any damage caused by this
 For details check the LICENSE file bundled with this software.
 
 As I don't have a Windows PC or Mac for development, I can not guarantee that this
-project compiles on a Windows PC or Mac. If you are intereted in maintaining these
+project compiles on a Windows PC or Mac. If you are interested in maintaining these
 platforms please contact me.
