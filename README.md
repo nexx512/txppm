@@ -3,23 +3,24 @@
 This software is usable for all RC Transmitters with the PPM modulation
 (mostly all transmitters with trainer/simulator connector).
 
-Purpose of this one is to convert the signal from your transmitter
+The purpose of this software is to convert the signal from your transmitter
 and make it available as joystick in your operating system.
 You don't have to buy anything else except your transmitter
 adapter + mono/stereo extension cord for your sound card input.
 Or you can make your own cable for direct connection into your transmitter
 with specified TX connector (e.g. mini din 4 for Esky Hobby) and mono jack.
-For example, DX6i transmitter need only mono or stereo jack (from both sides) cable.
+For example, DX6i transmitter needs only a mono or stereo jack (from both sides) cable. Some transmitters (like a DEVO 7E) require a mono jack to recognize the
+PC connection.
 
-As result you can play all simulators and games which requires joystick interface,
-for example: Heli-X, CRRCsim, FlightGear, ClearView (with wine, ...), etc.
+As result you can play all simulators and games which require a joystick interface,
+for example: Heli-X, NeXT, CRRCsim, FlightGear, ClearView (with wine, ...), etc.
 
 # Installation
 
 ## Dependencies
 
 This project requires the ```portaudio``` development files.
-On a debian derivative this can be installed with
+On a debian derivative system this can be installed with
 ```
 $ sudo apt-get install portaudio19-dev
 ```
@@ -36,14 +37,26 @@ $ sudo make install
 
 ## Build and install the user program
 
-If you want to ubild the graphical user interface set the environment variable ```WITH_GUI``` to 1.
+If you want to also build the graphical user interface set the environment variable ```WITH_GUI``` to 1.
 
-Build the client program in the ```software``` directory and start it.
+Build the client program in the ```software``` directory and install it. By default
+it will be installed in ```/usr/local```. This can be overwritten by setting
+the environment variable ```PREFIX``` to the targt directory.
 
 ```
-cd software
-make
-./ppm2tx
+$ cd software
+$ make
+$ make install
+```
+
+For the text only client run
+```
+$ ppm2tx
+```
+
+For the graphical user interface run
+```
+$ ppm2tx-gui
 ```
 
 Now you should be able to use a joystick device that represents your transmitter in your simulator.

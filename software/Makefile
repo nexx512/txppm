@@ -4,7 +4,8 @@ PREFIX   ?= /usr/local
 WITH_GUI ?= 0
 WIN32    ?= 0
 
-BIN	= ppm2tx
+BIN_TUI	= ppm2tx
+BIN_GUI = ppm2tx-gui
 OBJS	= ppm.o sys.o
 LIBS	= -lpthread -lportaudio -lm -lasound
 
@@ -19,24 +20,25 @@ ifeq ($(MACOSX),1)
 	LIBS	= -lm -lpthread -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework Carbon lib/libportaudio-osx-x86.a
 endif
 
+BIN = $(BIN_TUI)
 ifeq ($(WITH_GUI),1)
 	GTKCFLAGS ?= `pkg-config --cflags --libs gtk+-2.0`
-	CFLAGS += -DWITH_GUI=1 $(GTKCFLAGS)
-	OBJS += gui.o
-else
-	OBJS += tui.o
+	BIN += $(BIN_GUI)
 endif
 
-all: $(OBJS) $(BIN)
+all: $(BIN)
 
 clean:
 	rm -rf *.o *.exe $(BIN)
 
 .c.o:
-	$(CC) $(CFLAGS) -c -o$@ $<
+	$(CC) $(CFLAGS) $(GTKCFLAGS) -c -o$@ $<
 
-$(BIN): $(OBJS)
-	$(CC) -o $@ $(OBJS) $(LIBS) $(CFLAGS)
+$(BIN_TUI): $(OBJS) tui.o
+	$(CC) -o $@ $^ $(LIBS) $(CFLAGS)
+
+$(BIN_GUI): $(OBJS) gui.o
+	$(CC) -o $@ $^ $(LIBS) $(CFLAGS) $(GTKCFLAGS)
 
 install:
 	install $(BIN) $(PREFIX)/bin/

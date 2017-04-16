@@ -36,7 +36,7 @@ TXPPM (software), ver. 0.3.2: 2.1.2011
 TXPPM (software), ver. 0.3.3: 3.1.2011
 	audio initialization bug fixed in GUI
 	added support for settings in home directory
-	small optimazation in GUI
+	small optimization in GUI
 
 TXPPM (software), ver. 0.3.4: 5.1.2011
 	fixed device mismatch bug
@@ -53,4 +53,5 @@ TXPPM (software), ver. 0.3.7: 11.10.2013
 
 TXPPM (software), ver. 0.3.8: <Date>
 	Removed networking code
-	Remove ppjoyserver support
+	Remove ppjoysrv support
+	Always build the text interface

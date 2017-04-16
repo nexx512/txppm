@@ -1,5 +1,6 @@
 ppjoysrv/ppjoysrv.exe
 software/ppm2tx
+software/ppm2tx-gui
 **/*.o
 module/.tmp_versions/
 module/.tx.ko.cmd

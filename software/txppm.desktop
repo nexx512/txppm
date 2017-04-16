@@ -1,7 +1,7 @@
 [Desktop Entry]
-Name=TXPPM
-Comment=ppm2tx
-Exec=/usr/bin/ppm2tx
+Name=TxPPM
+Comment=RC Transmitter PPM Signal to joystick converter
+Exec=/usr/bin/ppm2tx-gui
 Terminal=false
 Type=Application
 Icon=icon.png
