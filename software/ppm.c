@@ -30,7 +30,7 @@
 
 #define SAMPLE_RATE		48000
 #define NUM_SAMPLES		3000
-#define NUM_CHANNELS		2
+#define NUM_CHANNELS		1
 
 typedef float SAMPLE;
 
@@ -146,7 +146,7 @@ int get_data_audio (float *values)
 	* then lest check here every (SAMPLE_RATE/50) recorded samples
 	*/
 
-	Pa_Sleep (1); // not sure this is useful
+	Pa_Sleep (1); // Required to keep CPU usage down
 
 	n = AudioData.SamplesCounter;
 
@@ -202,21 +202,21 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 
 	if (framesPerBuffer <= framesLeft) {
 		for (i = 0; i < framesPerBuffer; i ++) {
-			*wptr ++ = *rptr ++;
-			rptr ++;
-		}  // assume NUM_CHANNELS = 2
+			*wptr ++ = *rptr;
+			rptr += NUM_CHANNELS;
+		}
 	} else {
 		for (i = 0; i < framesLeft; i ++) {
-			*wptr ++ = *rptr ++;
-			rptr ++;
-		} // assume NUM_CHANNELS = 2
+			*wptr ++ = *rptr;
+			rptr += NUM_CHANNELS;
+		}
 
 		wptr = &data->recordedSamples[0];
 
 		for (i = 0; i < framesPerBuffer-framesLeft; i ++) {
-			*wptr ++ = *rptr ++;
-			rptr ++;
-		}  // assume NUM_CHANNELS = 2
+			*wptr ++ = *rptr;
+			rptr += NUM_CHANNELS;
+		}
 	}
 
 	data->frameIndex = (data->frameIndex + framesPerBuffer) % data->frameSize;
@@ -327,7 +327,7 @@ int setup_audio (int dev)
 #if PORTAUDIO == 18
 	err = Pa_OpenStream(&stream,
 			    dev,
-			    NUM_CHANNELS,  /* NUM_CHANNELS : stereo input */
+			    NUM_CHANNELS,
 			    paFloat32,
 			    NULL,
 			    paNoDevice,
