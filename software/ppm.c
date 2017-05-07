@@ -146,11 +146,11 @@ int get_data_audio (float *values)
 	* then lest check here every (SAMPLE_RATE/50) recorded samples
 	*/
 
-	Pa_Sleep (1); // not sure this is usefull
+	Pa_Sleep (1); // not sure this is useful
 
 	n = AudioData.SamplesCounter;
 
-	if (n - AudioData.LastSamplesCounter > SAMPLE_RATE / 50) {
+	if (n - AudioData.LastSamplesCounter > SAMPLE_RATE / 60) {
 		AudioData.LastSamplesCounter = n;		// lets update values
 
 		if (get_data (vals, &n)) {
