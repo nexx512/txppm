@@ -28,7 +28,7 @@
 #endif
 #include "sys.h"
 
-#define SAMPLE_RATE		44100
+#define SAMPLE_RATE		48000
 #define NUM_SAMPLES		3000
 #define NUM_CHANNELS		2
 
@@ -116,7 +116,7 @@ int get_data (float *values, int *nvalues)
 				}
 
 				if (chanel > 0) {
-					values[chanel - 1] = (time + dt) / 44.1 - 1.5;
+					values[chanel - 1] = (time + dt) / (SAMPLE_RATE / 1000.) - 1.5;
 				}
 
 				chanel ++;
