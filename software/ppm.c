@@ -201,20 +201,20 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 	wptr = &data->recordedSamples[data->frameIndex];
 
 	if (framesPerBuffer <= framesLeft) {
-		for (i = 0; i < framesPerBuffer; i ++) {
-			*wptr ++ = *rptr;
+		for (i = framesPerBuffer; i > 0; --i) {
+			*wptr++ = *rptr;
 			rptr += NUM_CHANNELS;
 		}
 	} else {
-		for (i = 0; i < framesLeft; i ++) {
-			*wptr ++ = *rptr;
+		for (i = framesLeft; i  > 0; --i) {
+			*wptr++ = *rptr;
 			rptr += NUM_CHANNELS;
 		}
 
 		wptr = &data->recordedSamples[0];
 
-		for (i = 0; i < framesPerBuffer-framesLeft; i ++) {
-			*wptr ++ = *rptr;
+		for (i = framesPerBuffer-framesLeft; i > 0; --i) {
+			*wptr++ = *rptr;
 			rptr += NUM_CHANNELS;
 		}
 	}
