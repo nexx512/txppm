@@ -142,8 +142,8 @@ int get_data_audio (float *values)
 	int i,n;
 
 	/*
-	* there is no need to update values more than 50 times a second
-	* then lest check here every (SAMPLE_RATE/50) recorded samples
+	* there is no need to update values more than 60 times a second
+	* then lest check here every (SAMPLE_RATE/60) recorded samples
 	*/
 
 	Pa_Sleep (1); // Required to keep CPU usage down
