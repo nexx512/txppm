@@ -2,7 +2,7 @@
  *  PPM to TX Terminal program
  *  Copyright (C) 2010  Tomas 'ZeXx86' Jedrzejek (zexx86@zexos.org)
  *  Copyright (C) 2011  Tomas 'ZeXx86' Jedrzejek (zexx86@zexos.org)
- *  Copyright (C) 2017  Jürgen Diez (j.diez@qb-x.de)
+ *  Copyright (C) 2017  Jürgen Diez (jdiez@web.de)
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "ppm.h"
 #include "sys.h"
 
