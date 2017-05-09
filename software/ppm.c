@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <float.h>
 #ifndef __WIN32__
 #include <portaudio.h>
 #else
@@ -28,198 +29,76 @@
 #endif
 #include "sys.h"
 
-#define SAMPLE_RATE		48000
-#define NUM_SAMPLES		3000
-#define NUM_CHANNELS		1
+#define SAMPLE_RATE       48000
+#define FRAMES_PER_BUFFER 16
+#define NUM_CHANNELS      1
+
+#define NUM_TX_CHANNELS   12
+
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
 
 typedef float SAMPLE;
 
-typedef struct {
-	int     frameIndex;  /* Index into sample array. */
-	int     frameSize;
-	int     SamplesCounter;
-	int     LastSamplesCounter;
-	SAMPLE  *recordedSamples;
-} paAudioData;
-
-static paAudioData  AudioData;
-static int          synchro_index = 0;
-
-//#define PORTAUDIO 18
-
-#if PORTAUDIO != 18
 typedef void PortAudioStream;
-#define PaStream PortAudioStream
-#endif
-
 PortAudioStream *stream;
 
 /* can be used for more channels */
-static float channels[12];
-int c[12];
+static float channels[NUM_TX_CHANNELS];
+int c[NUM_TX_CHANNELS];
 
 int app_exit;
 
-int get_data (float *values, int *nvalues)
-{
-	float x, px, max, min, moy;
-	int nval = AudioData.frameSize;
-	int i, j, chanel = 0;
-	float time, dt;
-	float *sig = AudioData.recordedSamples;
 
-	max = -100000;
-	min = 100000;
-
-	for (i = 0; i < nval; i ++) {
-		x = sig[i];
-
-		if (x > max)
-			max = x;
-		if (x < min)
-			min = x;
-	}
-
-	moy = (max + min) / 2;
-
-	x = 0;
-
-	chanel = -1;
-
-	time = 0;
-
-	j = (AudioData.frameIndex + 1024) % AudioData.frameSize;
-
-	for (i = 0; i < nval; i ++) {
-		time ++;
-
-		if (time > 100) {                   // Synchro detection
-			if (chanel < 0)
-				chanel = 0; //start
-			else if (chanel > 0)
-				break; //end
-		}
-
-		px = x;
-		x = sig[j ++];
-
-		if (j == AudioData.frameSize) {
-			j = 0;
-		}
-
-		if ((x > moy) && (px < moy)) {
-			dt = (moy - px) / (x - px);
-
-			if (chanel >= 0) {
-				if (chanel == 0 && i < (nval / 2)) {
-					synchro_index = j;  //for OSCILLO  synchro
-				}
-
-				if (chanel > 0) {
-					values[chanel - 1] = (time + dt) / (SAMPLE_RATE / 1000.) - 1.5;
-				}
-
-				chanel ++;
-
-				if (chanel > 10)
-					break;
-			}
-
-			time = -dt;
-		}
-	}
-
-	*nvalues = chanel - 1;
-
-	return 1;
-}
-
-int get_data_audio (float *values)
-{
-	static int nvals = 0;
-
-	static float vals[11];
-	int i,n;
-
-	/*
-	* there is no need to update values more than 60 times a second
-	* then lest check here every (SAMPLE_RATE/60) recorded samples
-	*/
-
-	Pa_Sleep (1); // Required to keep CPU usage down
-
-	n = AudioData.SamplesCounter;
-
-	if (n - AudioData.LastSamplesCounter > SAMPLE_RATE / 60) {
-		AudioData.LastSamplesCounter = n;		// lets update values
-
-		if (get_data (vals, &n)) {
-			for (i = 0; i < 11; i ++)
-				values[i] = vals[i];
-
-			nvals = n;
-		}
-	} else
-	  /*
-	  * LastSamplesCounter & SamplesCounter saturation management
-	  */
-		if (n < AudioData.LastSamplesCounter)
-			AudioData.LastSamplesCounter = n;
-
-	return nvals;
-}
-
-
-#if PORTAUDIO == 18
-static int callback_audio (void *inputBuffer, void *outputBuffer,
-                           unsigned long framesPerBuffer,
-                           PaTimestamp outTime, void *userData)
-#else
 static int callback_audio (const void *inputBuffer, void *outputBuffer,
                            unsigned long framesPerBuffer,
-                           const PaStreamCallbackTimeInfo *outTime,
+                           const PaStreamCallbackTimeInfo *timeInfo,
                            PaStreamCallbackFlags b, void *userData)
-#endif
 {
-	paAudioData *data = (paAudioData *) userData;
-	SAMPLE *rptr = (float *) inputBuffer;
-	SAMPLE *wptr;
-
 	unsigned long i;
-	unsigned long framesLeft = data->frameSize - data->frameIndex;
+	static SAMPLE v_min = FLT_MAX;
+	static SAMPLE v_max = -FLT_MAX;
+	static SAMPLE v_th;
+	static SAMPLE v_0 = 0;
+	SAMPLE v_1;
+	static PaTime pulseStartTime = 0;
+  static int channel = -1;
 
-	/* Prevent unused variable warnings. */
-	outputBuffer = NULL;
-	outTime = 0;
+  SAMPLE *samplePtr = (SAMPLE*)inputBuffer;
+	PaTime triggerTime;
+	for (i = 0;
+			i < framesPerBuffer;
+			++i, samplePtr += NUM_CHANNELS, v_0 = v_1) {
+		v_1 = -*samplePtr;
 
-#if PORTAUDIO != 18
-	b = 0;
-#endif
+		// Calculate the threshold between the two extrema
+		v_min = MIN(v_min, v_1);
+		v_max = MAX(v_max, v_1);
+		v_th = (v_max + v_min) / 2;
 
-	data->SamplesCounter += framesPerBuffer;
+		// Trigger pulse measurement on a positive slope
+		if ((v_0 < v_th) && (v_1 > v_th)) {
+			// Calculate the exact time when hitting the threshold
+			triggerTime = timeInfo->inputBufferAdcTime + (float)i / SAMPLE_RATE
+				+ ((v_th - v_0) / (v_1 - v_0)) / SAMPLE_RATE;
+			PaTime pulseLength = triggerTime - pulseStartTime;
+			pulseStartTime = triggerTime;
 
-	wptr = &data->recordedSamples[data->frameIndex];
-
-	if (framesPerBuffer <= framesLeft) {
-		for (i = framesPerBuffer; i > 0; --i) {
-			*wptr++ = *rptr;
-			rptr += NUM_CHANNELS;
-		}
-	} else {
-		for (i = framesLeft; i  > 0; --i) {
-			*wptr++ = *rptr;
-			rptr += NUM_CHANNELS;
-		}
-
-		wptr = &data->recordedSamples[0];
-
-		for (i = framesPerBuffer-framesLeft; i > 0; --i) {
-			*wptr++ = *rptr;
-			rptr += NUM_CHANNELS;
+			// If the pulse is longer than 2ms it is considered a start pule
+			if (pulseLength > 0.002) {
+				channel = 0;
+			} else if (channel >= 0) {
+				// Store the pulse length in ms in the channel.
+				// According to the spec, the pulse length ranger from 1..2ms
+				channels[channel] = (pulseLength * 1000) - 1.5;
+				channel++;
+				// Prevent channel overflow and ignore exceeding channels
+				if (channel >= NUM_TX_CHANNELS){
+					channel = -1;
+				}
+			}
 		}
 	}
-
-	data->frameIndex = (data->frameIndex + framesPerBuffer) % data->frameSize;
 
 	return 0;
 }
@@ -230,14 +109,7 @@ int list_audio ()
 		return -1;
 
 	const PaDeviceInfo *pdi;
-	int num_devs;
-
-#if PORTAUDIO == 18
-	num_devs = Pa_CountDevices ();
-#else
-	num_devs = Pa_GetDeviceCount ();
-#endif
-	return num_devs;
+	return Pa_GetDeviceCount ();
 }
 
 char *get_audio_name (int id)
@@ -258,11 +130,7 @@ int init_audio (int dev)
 	const PaDeviceInfo *pdi;
 	int num_devs;
 
-#if PORTAUDIO == 18
-	num_devs = Pa_CountDevices();
-#else
 	num_devs = Pa_GetDeviceCount();
-#endif
 
 	int ret = -1;
 
@@ -291,65 +159,26 @@ int close_audio ()
 
 int setup_audio (int dev)
 {
-#if PORTAUDIO != 18
-	PaStreamParameters inStreamParm;
-#endif
 	PaError err;
+	PaStreamParameters inStreamParm;
 
 	const PaDeviceInfo *pdi = Pa_GetDeviceInfo (dev);
 
-	/*  configure device */
-	AudioData.frameSize = NUM_SAMPLES; /* Record for a few samples. */
-	AudioData.frameIndex = 0;
-	AudioData.LastSamplesCounter = 0;
-	AudioData.SamplesCounter = 0;
-
-	AudioData.recordedSamples = (SAMPLE *) malloc (AudioData.frameSize * sizeof (SAMPLE));
-
-	if (AudioData.recordedSamples == NULL) {
-		printf ("ERROR -> Could not allocate record array\n");
-		exit (1);
-	}
-
-	int i;
-	for (i = 0; i < AudioData.frameSize; i ++)
-		AudioData.recordedSamples[i] = 0;
-
-#if PORTAUDIO != 18
 	inStreamParm.device = dev;
 	inStreamParm.channelCount = NUM_CHANNELS;
 	inStreamParm.hostApiSpecificStreamInfo = NULL;
 	inStreamParm.sampleFormat = paFloat32;
 	inStreamParm.suggestedLatency = pdi->defaultHighInputLatency;
-#endif
 
 	/* Record some audio. -------------------------------------------- */
-#if PORTAUDIO == 18
-	err = Pa_OpenStream(&stream,
-			    dev,
-			    NUM_CHANNELS,
-			    paFloat32,
-			    NULL,
-			    paNoDevice,
-			    0,
-			    paFloat32,
-			    NULL,
-			    SAMPLE_RATE,
-			    1024,          /* frames per buffer */
-			    0,             /* number of buffers, if zero then use default minimum */
-			    0, //paDitherOff,    /* flags */
-			    callback_audio,
-			    &AudioData );
-#else
 	err = Pa_OpenStream(&stream,
 			    &inStreamParm,
 			    NULL,
 			    SAMPLE_RATE,
-			    1024,
+			    FRAMES_PER_BUFFER,
 			    0,
 			    callback_audio,
-			    &AudioData);
-#endif
+					NULL);
 
 	if (err != paNoError)
 		goto error;
@@ -376,7 +205,8 @@ void ppm_decode (int fd, int mix)
 	printf ("> PPM decoding is running\n");
 
 	while (!app_exit) {
-		get_data_audio ((float *) &channels);
+		// Reduce the CPU load by suspending the task
+		Pa_Sleep(1);
 
 		if (mix == 1) {
 /*
@@ -385,20 +215,20 @@ void ppm_decode (int fd, int mix)
 			Elevator = Pitch – Ch6
 			Aileron = -Pitch + Ch1 – 0.5*Elevator
 */
-			float pitch = (channels[0]+channels[1]-channels[5])/3;
+			float pitch = (channels[0] + channels[1] - channels[5]) / 3;
 
 			c[5] = (int) (pitch * 1024);
-			c[1] = (int) ((-pitch + channels[1]) * 1024);
-			c[0] = (int) ((-pitch + channels[0] + 0.5*(-pitch + channels[1])) * 1800);
+			c[1] = (int) ((channels[1] - pitch) * 1024);
+			c[0] = (int) ((channels[0] - pitch + 0.5*  (channels[1] - pitch)) * 1800);
 			c[2] = (int) (channels[2] * 1024);
 			c[3] = (int) (channels[3] * 1280);
 			c[4] = (int) (channels[4] * 996) - 8;
-		} if (mix == 2) {
-			float pitch = (channels[1] + channels[2] - channels[5])/3;
+		} else if (mix == 2) {
+			float pitch = (channels[1] + channels[2] - channels[5]) / 3;
 
 			c[5] = (int) (pitch * 1024);
 			c[1] = (int) ((channels[2] - pitch) * 1024);
-			c[0] = (int) ((pitch - channels[1] - 0.5*(channels[2] - pitch)) * 1800);
+			c[0] = (int) ((pitch - channels[1] - 0.5 * (channels[2] - pitch)) * 1800);
 			c[2] = (int) (channels[0] * 1024);
 			c[3] = (int) (channels[3] * 1280);
 			c[4] = (int) (channels[4] * 996) - 8;
