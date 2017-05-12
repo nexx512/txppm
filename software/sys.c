@@ -2,7 +2,7 @@
  *  PPM to TX
  *  Copyright (C) 2010  Tomas 'ZeXx86' Jedrzejek (zexx86@zexos.org)
  *  Copyright (C) 2011  Tomas 'ZeXx86' Jedrzejek (zexx86@zexos.org)
- *  Copyright (C) 2017  Jürgen Diez (j.diez@qb-x.de)
+ *  Copyright (C) 2017  Jürgen Diez (jdiez@web.de)
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,6 +22,7 @@
 #include "ppm.h"
 #include <stdio.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <signal.h>
 #include <string.h>
 #ifndef __WIN32__
@@ -97,7 +98,7 @@ int device_write (int fd)
 	return 0;
 }
 
-int device_close (fd)
+int device_close (int fd)
 {
 	close (fd);
 }

@@ -55,3 +55,5 @@ TXPPM (software), ver. 0.3.8: <Date>
 	Removed networking code
 	Remove ppjoysrv support
 	Always build the text interface
+	Refactored ppm code to reduce latency and do less memcopy
+	Removed support for portaudio 18
