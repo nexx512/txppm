@@ -29,12 +29,14 @@
 #include "ppm.h"
 #include "sys.h"
 
+#define NUM_TX_CHANNELS 6
+
 /* GtkWidget is the storage type for widgets */
 GtkWidget *window;
 GtkWidget *mix;
 GtkWidget *device;
 GtkWidget *button;
-GtkWidget *pbar_ch[6];
+GtkWidget *pbar_ch[NUM_TX_CHANNELS];
 GtkWidget *channels;
 GtkWidget *frame3;
 
@@ -48,9 +50,9 @@ pthread_t thread;
 
 static gboolean progress_timeout (gpointer data)
 {
-	float ch[6];
+	float ch[NUM_TX_CHANNELS];
 	int i;
-	for (i = 0; i < 6; i ++) {
+	for (i = 0; i < NUM_TX_CHANNELS; i ++) {
 		ch[i] = (float) (c[i]+512)/1000;
 
 		if (ch[i] < 0)
@@ -226,12 +228,9 @@ static void start (GtkWidget *widget, gpointer data )
 
 	if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (channels)) == TRUE) {
 		g_timeout_add (40, progress_timeout, NULL);
-		gtk_widget_show (pbar_ch[0]);
-		gtk_widget_show (pbar_ch[1]);
-		gtk_widget_show (pbar_ch[2]);
-		gtk_widget_show (pbar_ch[3]);
-		gtk_widget_show (pbar_ch[4]);
-		gtk_widget_show (pbar_ch[5]);
+		for (int i = 0; i < NUM_TX_CHANNELS; ++i) {
+			gtk_widget_show (pbar_ch[i]);
+		}
 		gtk_widget_hide (channels);
 		chshow = 1;
 	} else
@@ -403,7 +402,7 @@ int main (int argc, char *argv[])
 	gtk_box_pack_start (GTK_BOX (box2), channels, TRUE, FALSE, 0);
 	/** CHANNELS **/
 	int l;
-	for (l = 0; l < 6; l ++) {
+	for (l = 0; l < NUM_TX_CHANNELS; l ++) {
 		pbar_ch[l] = gtk_progress_bar_new ();
 		gtk_progress_bar_set_orientation (GTK_PROGRESS_BAR (pbar_ch[l]), GTK_PROGRESS_BOTTOM_TO_TOP);
 		gtk_box_pack_start (GTK_BOX (box2), pbar_ch[l], TRUE, FALSE, 0);

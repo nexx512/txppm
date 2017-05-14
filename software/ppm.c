@@ -33,7 +33,7 @@
 #define FRAMES_PER_BUFFER 16
 #define NUM_CHANNELS      1
 
-#define NUM_TX_CHANNELS   12
+#define NUM_TX_CHANNELS   6
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -77,7 +77,7 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 		v_th = (v_max + v_min) / 2;
 
 		// Trigger pulse measurement on a positive slope
-		if ((v_0 < v_th) && (v_1 > v_th)) {
+		if ((v_0 <= v_th) && (v_1 > v_th)) {
 			// Calculate the exact time when hitting the threshold
 			triggerTime = timeInfo->inputBufferAdcTime + (float)i / SAMPLE_RATE
 				+ ((v_th - v_0) / (v_1 - v_0)) / SAMPLE_RATE;
@@ -85,7 +85,7 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 			pulseStartTime = triggerTime;
 
 			// If the pulse is longer than 2ms it is considered a start pule
-			if (pulseLength > 0.002) {
+			if (pulseLength > 0.0021) {
 				channel = 0;
 			} else if (channel >= 0) {
 				// Store the pulse length in ms in the channel.
@@ -204,6 +204,10 @@ void ppm_decode (int fd, int mix)
 {
 	printf ("> PPM decoding is running\n");
 
+  for (int i = 0; i < NUM_TX_CHANNELS; ++i) {
+    channels[i] = 0;
+  }
+
 	while (!app_exit) {
 		// Reduce the CPU load by suspending the task
 		Pa_Sleep(1);
@@ -240,6 +244,10 @@ void ppm_decode (int fd, int mix)
 			c[4] = (int) (channels[4] * 512);
 			c[5] = (int) (channels[5] * 512);
 		}
+
+    for (int i = 6; i < NUM_TX_CHANNELS; ++i) {
+      c[i] = (int) (channels[i] * 512);
+    }
 
 		if (device_write (fd) == -1)
 			break;
