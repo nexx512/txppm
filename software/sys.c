@@ -26,6 +26,7 @@
 #include <signal.h>
 #include <string.h>
 #ifndef __WIN32__
+#include "uinput.h"
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -68,39 +69,23 @@ int init_sig (void)
 	return 1;
 }
 
-struct hostent *host;
-struct sockaddr_in serverSock;
-socklen_t addrlen;
-
 int device_open ()
 {
-	int fd = open ("/dev/tx", O_WRONLY);
-
-	if (fd < 0) {
-		printf ("ERROR -> /dev/tx device is missing !\nDo you forget to create it over mknod or you need permission for write into this device, try chmod ?\n");
-		return -1;
-	}
-
- 	printf ("> /dev/tx\n");
+	int fd = createUinputDevice();
 
 	return fd;
 }
 
 int device_write (int fd)
 {
-	int r = write (fd, &c, sizeof (int) * 12);
-
-	if (r != sizeof (int) * 12) {
-		app_exit = 1;
-		printf ("ERROR -> Data are incompatibile length !\n");
-	}
+	setAxes(fd, c, 6);
 
 	return 0;
 }
 
 int device_close (int fd)
 {
-	close (fd);
+	closeInputDevice(fd);
 }
 #else /** ********************* WIN32 ********************* **/
 

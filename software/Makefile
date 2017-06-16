@@ -14,7 +14,10 @@ ifeq ($(WIN32),1)
 	CC	= WINEPREFIX=$(WINEPREFIX) wine $(WINEPREFIX)/drive_c/Dev-Cpp/bin/gcc.exe
 	LIBS	= -lm -lws2_32 lib/libpthread-win32.dll lib/libportaudio-win32.dll
 	GTKCFLAGS = -mms-bitfields -I$(WINEPREFIX)/drive_c/gtk+-bundle_2.22.1-20101227_win32/include/gtk-2.0 -I$(WINEPREFIX)/drive_c/gtk+-bundle_2.22.1-20101227_win32/lib/gtk-2.0/include -I$(WINEPREFIX)/drive_c/gtk+-bundle_2.22.1-20101227_win32/include/atk-1.0 -I$(WINEPREFIX)/drive_c/gtk+-bundle_2.22.1-20101227_win32/include/cairo -I$(WINEPREFIX)/drive_c/gtk+-bundle_2.22.1-20101227_win32/include/gdk-pixbuf-2.0 -I$(WINEPREFIX)/drive_c/gtk+-bundle_2.22.1-20101227_win32/include/pango-1.0 -I$(WINEPREFIX)/drive_c/gtk+-bundle_2.22.1-20101227_win32/include/glib-2.0 -I$(WINEPREFIX)/drive_c/gtk+-bundle_2.22.1-20101227_win32/lib/glib-2.0/include -I$(WINEPREFIX)/drive_c/gtk+-bundle_2.22.1-20101227_win32/include -I$(WINEPREFIX)/drive_c/gtk+-bundle_2.22.1-20101227_win32/include/freetype2 -I$(WINEPREFIX)/drive_c/gtk+-bundle_2.22.1-20101227_win32/include/libpng14  -L$(WINEPREFIX)/drive_c/gtk+-bundle_2.22.1-20101227_win32/lib -lgtk-win32-2.0 -lgdk-win32-2.0 -latk-1.0 -lgio-2.0 -lpangowin32-1.0 -lgdi32 -lpangocairo-1.0 -lgdk_pixbuf-2.0 -lpango-1.0 -lcairo -lgobject-2.0 -lgmodule-2.0 -lgthread-2.0 -lglib-2.0 -lintl
+else
+	OBJS += uinput.o
 endif
+
 
 ifeq ($(MACOSX),1)
 	LIBS	= -lm -lpthread -framework CoreAudio -framework AudioToolbox -framework AudioUnit -framework Carbon lib/libportaudio-osx-x86.a
