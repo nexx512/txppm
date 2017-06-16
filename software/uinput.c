@@ -24,8 +24,19 @@ void setAxes(int fd, int* data, int size){
 
 int createUinputDevice(){
 	int fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
+	
+	if(fd < 0) {
+		fd = open("/dev/input/uinput", O_WRONLY | O_NONBLOCK);
+		
+		if(fd < 0){
+			printf("Couldn't open uinput.\n");
+			exit(EXIT_FAILURE);
+		}
+	}
 
 	int ret = ioctl(fd, UI_SET_EVBIT, EV_ABS);
+	ioctl(fd, UI_SET_EVBIT, EV_KEY);
+
 
 	struct uinput_user_dev uidev = {0};
 	snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "uinput-ppm");
