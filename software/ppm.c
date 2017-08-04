@@ -62,9 +62,28 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 	static SAMPLE v_0 = 0;
 	SAMPLE v_1;
 	static PaTime pulseStartTime = 0;
-  static int channel = -1;
+	static PaTime prevAdcTime = 0;
+	static int channel = -1;
 
-  SAMPLE *samplePtr = (SAMPLE*)inputBuffer;
+	PaTime diffAdcTime = timeInfo->inputBufferAdcTime - prevAdcTime;
+	prevAdcTime = timeInfo->inputBufferAdcTime;
+	// Discard frame that arrives in the wrong order
+	if (diffAdcTime < 0) {
+		printf("Discarded old frame.\n");
+		return 0;
+	}
+	// Discard the measurement if the latency is close to the minumum pulse length of 1ms
+	if (diffAdcTime > 0.0009) {
+#ifndef DEBUG
+		if (channel >= 0)
+#endif
+		printf("Latency threshold exceeded: %fms. Reset decoding.\n", diffAdcTime);
+		channel = -1;
+		return 0;
+	}
+	//printf("frame ok %f\n", diffAdcTime);
+
+	SAMPLE *samplePtr = (SAMPLE*)inputBuffer;
 	PaTime triggerTime;
 	for (i = 0;
 			i < framesPerBuffer;
@@ -89,7 +108,7 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 				channel = 0;
 			} else if (channel >= 0) {
 				// Store the pulse length in ms in the channel.
-				// According to the spec, the pulse length ranger from 1..2ms
+				// According to the spec, the pulse length ranges from 1..2ms
 				channels[channel] = (pulseLength * 1000) - 1.5;
 				channel++;
 				// Prevent channel overflow and ignore exceeding channels
@@ -202,7 +221,7 @@ error:
 
 void ppm_decode (int fd, int mix)
 {
-	printf ("> PPM decoding is running\n");
+	printf ("> PPM decoding is running at %dHz sample rate and %d frames per buffer on %d channel(s)\n", SAMPLE_RATE, FRAMES_PER_BUFFER, NUM_CHANNELS);
 
   for (int i = 0; i < NUM_TX_CHANNELS; ++i) {
     channels[i] = 0;
