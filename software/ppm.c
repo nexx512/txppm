@@ -81,7 +81,6 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 		channel = -1;
 		return 0;
 	}
-	//printf("frame ok %f\n", diffAdcTime);
 
 	SAMPLE *samplePtr = (SAMPLE*)inputBuffer;
 	PaTime triggerTime;
