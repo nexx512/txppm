@@ -6,6 +6,7 @@ module/.tmp_versions/
 module/.tx.ko.cmd
 module/.tx.mod.o.cmd
 module/.tx.o.cmd
+module/.tx.o.d
 module/Module.symvers
 module/modules.order
 module/tx.ko
