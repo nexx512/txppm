@@ -55,38 +55,19 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
                            const PaStreamCallbackTimeInfo *timeInfo,
                            PaStreamCallbackFlags b, void *userData)
 {
-	unsigned long i;
 	static SAMPLE v_min = FLT_MAX;
 	static SAMPLE v_max = -FLT_MAX;
 	static SAMPLE v_th;
 	static SAMPLE v_0 = 0;
 	SAMPLE v_1;
 	static PaTime pulseStartTime = 0;
-	static PaTime prevAdcTime = 0;
 	static int channel = -1;
-
-	PaTime diffAdcTime = timeInfo->inputBufferAdcTime - prevAdcTime;
-	prevAdcTime = timeInfo->inputBufferAdcTime;
-	// Discard frame that arrives in the wrong order
-	if (diffAdcTime < 0) {
-		printf("Discarded old frame.\n");
-		return 0;
-	}
-	// Discard the measurement if the latency is close to the minumum pulse length of 1ms
-	if (diffAdcTime > 0.0009) {
-#ifndef DEBUG
-		if (channel >= 0)
-#endif
-		printf("Latency threshold exceeded: %fms. Reset decoding.\n", diffAdcTime);
-		channel = -1;
-		return 0;
-	}
+  static unsigned int sampleNum = 0;
 
 	SAMPLE *samplePtr = (SAMPLE*)inputBuffer;
-	PaTime triggerTime;
-	for (i = 0;
+	for (unsigned int i = 0;
 			i < framesPerBuffer;
-			++i, samplePtr += NUM_CHANNELS, v_0 = v_1) {
+			++i, ++sampleNum, samplePtr += NUM_CHANNELS, v_0 = v_1) {
 		v_1 = -*samplePtr;
 
 		// Calculate the threshold between the two extrema
@@ -97,14 +78,16 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 		// Trigger pulse measurement on a positive slope
 		if ((v_0 <= v_th) && (v_1 > v_th)) {
 			// Calculate the exact time when hitting the threshold
-			triggerTime = timeInfo->inputBufferAdcTime + (float)i / SAMPLE_RATE
-				+ ((v_th - v_0) / (v_1 - v_0)) / SAMPLE_RATE;
+      PaTime triggerOffset = ((v_th - v_0) / (v_1 - v_0)) / SAMPLE_RATE;
+			PaTime triggerTime = ((float)sampleNum / SAMPLE_RATE) + triggerOffset;
 			PaTime pulseLength = triggerTime - pulseStartTime;
 			pulseStartTime = triggerTime;
 
 			// If the pulse is longer than 2ms it is considered a start pule
 			if (pulseLength > 0.0021) {
 				channel = 0;
+        sampleNum = 0;
+  			pulseStartTime = triggerOffset;
 			} else if (channel >= 0) {
 				// Store the pulse length in ms in the channel.
 				// According to the spec, the pulse length ranges from 1..2ms
