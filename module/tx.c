@@ -37,11 +37,11 @@ struct tx_dev_t {
 
 	int opened;     	/* Is device open ? */
 	int major;
-	
+
 	struct class *fc;
-	
+
 	struct cdev txdev;
-		
+
 	struct input_dev *input_dev;
 };
 
@@ -50,13 +50,13 @@ static struct tx_dev_t tx_dev;
 static int device_open (struct inode *inode, struct file *file)
 {
 	struct tx_dev_t *tx = &tx_dev;
-	
+
 	if (!tx)
 		return 0;
 
         if (tx->opened)
                 return -EBUSY;
-	
+
 	tx->opened ++;
 
         try_module_get (THIS_MODULE);
@@ -67,23 +67,23 @@ static int device_open (struct inode *inode, struct file *file)
 static int device_release (struct inode *inode, struct file *file)
 {
 	struct tx_dev_t *tx = &tx_dev;
-	
+
 	if (!tx)
 		return 0;
 
         tx->opened --;          /* We're now ready for our next caller */
 
-        /* 
+        /*
          * Decrement the usage count, or else once you opened the file, you'll
-         * never get rid of the module. 
+         * never get rid of the module.
          */
         module_put (THIS_MODULE);
 
         return 0;
 }
 
-/*  
- * Called when a process writes to dev file: echo "hi" > /dev/hello 
+/*
+ * Called when a process writes to dev file: echo "hi" > /dev/hello
  */
 static ssize_t device_write (struct file *filp, const char *buff, size_t len, loff_t * off)
 {
@@ -93,13 +93,13 @@ static ssize_t device_write (struct file *filp, const char *buff, size_t len, lo
 	}
 
 	struct tx_dev_t *tx = &tx_dev;
-	
+
 	if (!tx)
 		return 0;
-	
+
 	/* copy userspace data to kernelspace */
-	int r = copy_from_user (&tx->chan, buff, len);
-	
+	int r = raw_copy_from_user (&tx->chan, buff, len);
+
 	/* report new values to joystick device */
 	input_report_abs (tx->input_dev, ABS_X, tx->chan[0]);
 	input_report_abs (tx->input_dev, ABS_Y, tx->chan[1]);
@@ -107,7 +107,7 @@ static ssize_t device_write (struct file *filp, const char *buff, size_t len, lo
 	input_report_abs (tx->input_dev, ABS_THROTTLE, tx->chan[3]);
 	input_report_abs (tx->input_dev, ABS_RUDDER, tx->chan[4]);
 	input_report_abs (tx->input_dev, ABS_MISC, tx->chan[5]);
-	
+
         return len;
 }
 
@@ -135,7 +135,7 @@ static int tx_connect (struct tx_dev_t *tx)
 	int err = -ENODEV;
 
 	tx->input_dev = input_allocate_device ();
-	
+
 	if (!tx->input_dev)
 		return err;
 
@@ -171,7 +171,7 @@ static int tx_connect (struct tx_dev_t *tx)
 		printk (KERN_ALERT "txppm -> Registering char device failed with %d\n", tx->major);
 		return err;
         }
-	
+
 	tx->major = DEVICE_MAJOR;
 	printk (KERN_INFO "txppm -> use: 'mknod /dev/%s c %d 0'.\n", DEVICE_NAME, tx->major);*/
 
@@ -182,10 +182,10 @@ static int tx_connect (struct tx_dev_t *tx)
 
 	/* Figure out our device number. */
 	result = register_chrdev_region (dev, 1, "tx");
-	
+
 	if (result < 0) {
 		printk (KERN_WARNING "tx: unable to get major %d\n", tx->major);
-		
+
 		dev = MKDEV (0, 0);
 		result = alloc_chrdev_region (&dev, 0, 1, "tx");
                 tx->major = MAJOR (dev);
@@ -196,10 +196,10 @@ static int tx_connect (struct tx_dev_t *tx)
 	int devno = MKDEV (tx->major, 0);
 
 	cdev_init (&tx->txdev, &fops);
-	
+
 	tx->txdev.owner = THIS_MODULE;
 	tx->txdev.ops = &fops;
-	
+
 	/* Fail gracefully if need be */
 	if (cdev_add (&tx->txdev, devno, 1)) {
 		printk (KERN_NOTICE "Error %d adding tx%d", err, devno);
@@ -222,10 +222,10 @@ error:
 static void tx_disconnect (struct tx_dev_t *tx)
 {
 	input_unregister_device (tx->input_dev);
-	
+
 	//unregister_chrdev (tx->major, DEVICE_NAME);
 	cdev_del (&tx->txdev);
-	
+
 	device_destroy (tx->fc, MKDEV (tx->major, 0));
 	class_destroy (tx->fc);
 
