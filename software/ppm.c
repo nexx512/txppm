@@ -3,6 +3,7 @@
  *  Copyright (C) 2010  Tomas 'ZeXx86' Jedrzejek (zexx86@zexos.org)
  *  Copyright (C) 2011  Tomas 'ZeXx86' Jedrzejek (zexx86@zexos.org)
  *  Copyright (C) 2017  Jürgen Diez (jdiez@web.de)
+ *  Copyright (C) 2018  Tomas 'ZeXx86' Jedrzejek (tomasj@spirit-system.com)
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -62,10 +63,11 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 	SAMPLE v_1;
 	static PaTime pulseStartTime = 0;
 	static int channel = -1;
-  static unsigned int sampleNum = 0;
-
+	static unsigned int sampleNum = 0;
+	unsigned int i;
+	
 	SAMPLE *samplePtr = (SAMPLE*)inputBuffer;
-	for (unsigned int i = 0;
+	for (i = 0;
 			i < framesPerBuffer;
 			++i, ++sampleNum, samplePtr += NUM_CHANNELS, v_0 = v_1) {
 		v_1 = -*samplePtr;
@@ -78,7 +80,7 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 		// Trigger pulse measurement on a positive slope
 		if ((v_0 <= v_th) && (v_1 > v_th)) {
 			// Calculate the exact time when hitting the threshold
-      PaTime triggerOffset = ((v_th - v_0) / (v_1 - v_0)) / SAMPLE_RATE;
+			PaTime triggerOffset = ((v_th - v_0) / (v_1 - v_0)) / SAMPLE_RATE;
 			PaTime triggerTime = ((float)sampleNum / SAMPLE_RATE) + triggerOffset;
 			PaTime pulseLength = triggerTime - pulseStartTime;
 			pulseStartTime = triggerTime;
@@ -86,8 +88,8 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 			// If the pulse is longer than 2ms it is considered a start pule
 			if (pulseLength > 0.0021) {
 				channel = 0;
-        sampleNum = 0;
-  			pulseStartTime = triggerOffset;
+				sampleNum = 0;
+				pulseStartTime = triggerOffset;
 			} else if (channel >= 0) {
 				// Store the pulse length in ms in the channel.
 				// According to the spec, the pulse length ranges from 1..2ms
@@ -205,9 +207,10 @@ void ppm_decode (int fd, int mix)
 {
 	printf ("> PPM decoding is running at %dHz sample rate and %d frames per buffer on %d channel(s)\n", SAMPLE_RATE, FRAMES_PER_BUFFER, NUM_CHANNELS);
 
-  for (int i = 0; i < NUM_TX_CHANNELS; ++i) {
-    channels[i] = 0;
-  }
+	int i;
+	for (i = 0; i < NUM_TX_CHANNELS; ++i) {
+		channels[i] = 0;
+	}
 
 	while (!app_exit) {
 		// Reduce the CPU load by suspending the task
@@ -246,9 +249,9 @@ void ppm_decode (int fd, int mix)
 			c[5] = (int) (channels[5] * 512);
 		}
 
-    for (int i = 6; i < NUM_TX_CHANNELS; ++i) {
-      c[i] = (int) (channels[i] * 512);
-    }
+		for (i = 6; i < NUM_TX_CHANNELS; ++i) {
+			c[i] = (int) (channels[i] * 512);
+		}
 
 		if (device_write (fd) == -1)
 			break;
