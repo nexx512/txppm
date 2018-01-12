@@ -23,6 +23,7 @@
 #include <linux/device.h>
 #include <linux/cdev.h>
 #include <linux/fs.h>
+#include <linux/version.h>
 #include <asm/uaccess.h>
 
 #define DEVICE_NAME 	"tx"   /* Dev name as it appears in /proc/devices   */
@@ -98,7 +99,7 @@ static ssize_t device_write (struct file *filp, const char *buff, size_t len, lo
 	if (!tx) return 0;
 
 	/* copy userspace data to kernelspace */
-#ifdef raw_copy_from_user
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,0,0)
 	r = raw_copy_from_user (&tx->chan, buff, len);
 #else
 	r = copy_from_user (&tx->chan, buff, len);
