@@ -52,35 +52,31 @@ static int device_open (struct inode *inode, struct file *file)
 {
 	struct tx_dev_t *tx = &tx_dev;
 
-	if (!tx)
-		return 0;
-
-        if (tx->opened)
-                return -EBUSY;
+	if (!tx) return 0;
+	if (tx->opened) return -EBUSY;
 
 	tx->opened ++;
 
-        try_module_get (THIS_MODULE);
+	try_module_get (THIS_MODULE);
 
-        return 0;
+	return 0;
 }
 
 static int device_release (struct inode *inode, struct file *file)
 {
 	struct tx_dev_t *tx = &tx_dev;
 
-	if (!tx)
-		return 0;
+	if (!tx) return 0;
 
-        tx->opened --;          /* We're now ready for our next caller */
+	tx->opened --;          /* We're now ready for our next caller */
 
-        /*
-         * Decrement the usage count, or else once you opened the file, you'll
-         * never get rid of the module.
-         */
-        module_put (THIS_MODULE);
+	/*
+	 * Decrement the usage count, or else once you opened the file, you'll
+	 * never get rid of the module.
+	 */
+	module_put (THIS_MODULE);
 
-        return 0;
+	return 0;
 }
 
 /*
@@ -113,7 +109,7 @@ static ssize_t device_write (struct file *filp, const char *buff, size_t len, lo
 	input_report_abs (tx->input_dev, ABS_RUDDER, tx->chan[4]);
 	input_report_abs (tx->input_dev, ABS_MISC, tx->chan[5]);
 
-        return len;
+	return len;
 }
 
 static struct file_operations fops = {
@@ -146,8 +142,7 @@ static int tx_connect (struct tx_dev_t *tx)
 
 	tx->input_dev = input_allocate_device ();
 
-	if (!tx->input_dev)
-		return err;
+	if (!tx->input_dev) return err;
 
 	input_set_drvdata (tx->input_dev, tx);
 
@@ -172,18 +167,19 @@ static int tx_connect (struct tx_dev_t *tx)
 
 	err = input_register_device (tx->input_dev);
 
-	if (err)
-		goto error;
+	if (err) goto error;
 
-/*	tx->major = register_chrdev (DEVICE_MAJOR, DEVICE_NAME, &fops);
+/*
+	tx->major = register_chrdev (DEVICE_MAJOR, DEVICE_NAME, &fops);
 
-        if (tx->major < 0) {
+	if (tx->major < 0) {
 		printk (KERN_ALERT "txppm -> Registering char device failed with %d\n", tx->major);
 		return err;
-        }
+	}
 
 	tx->major = DEVICE_MAJOR;
-	printk (KERN_INFO "txppm -> use: 'mknod /dev/%s c %d 0'.\n", DEVICE_NAME, tx->major);*/
+	printk (KERN_INFO "txppm -> use: 'mknod /dev/%s c %d 0'.\n", DEVICE_NAME, tx->major);
+*/
 
 	tx->major = DEVICE_MAJOR;
 
@@ -197,7 +193,7 @@ static int tx_connect (struct tx_dev_t *tx)
 
 		dev = MKDEV (0, 0);
 		result = alloc_chrdev_region (&dev, 0, 1, "tx");
-                tx->major = MAJOR (dev);
+		tx->major = MAJOR (dev);
 		printk (KERN_NOTICE "tx: obtained new major %d\n", tx->major);
 	}
 
@@ -214,8 +210,9 @@ static int tx_connect (struct tx_dev_t *tx)
 		printk (KERN_NOTICE "Error %d adding tx%d", err, devno);
 		err = -1;
 		goto error;
-	} else
+	} else {
 		printk (KERN_INFO "tx: device /dev/%s created (major: %d minor: 0)\n", DEVICE_NAME, tx->major);
+	}
 
 	tx->fc = class_create (THIS_MODULE, "txppm");
 
