@@ -197,6 +197,12 @@ static void start (GtkWidget *widget, gpointer data )
 	fd = device_open ();
 
 	if (fd < 0) {
+		GtkWidget *dialog = gtk_message_dialog_new (NULL, 0, GTK_MESSAGE_INFO, GTK_BUTTONS_OK, "Kernel module is not loaded or permission for /dev/tx is insufficient.\nPlease check README file for more detials." );
+
+		gtk_window_set_title(GTK_WINDOW(dialog), "Problem");
+		gint result = gtk_dialog_run(GTK_DIALOG(dialog));
+		gtk_widget_destroy( GTK_WIDGET(dialog) );
+	
 		gtk_main_quit ();
 		return;
 	}
@@ -228,7 +234,8 @@ static void start (GtkWidget *widget, gpointer data )
 
 	if (gtk_toggle_button_get_active (GTK_TOGGLE_BUTTON (channels)) == TRUE) {
 		g_timeout_add (40, progress_timeout, NULL);
-		for (int i = 0; i < NUM_TX_CHANNELS; ++i) {
+		int i;
+		for (i = 0; i < NUM_TX_CHANNELS; ++i) {
 			gtk_widget_show (pbar_ch[i]);
 		}
 		gtk_widget_hide (channels);
