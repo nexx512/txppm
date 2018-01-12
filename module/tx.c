@@ -87,22 +87,23 @@ static int device_release (struct inode *inode, struct file *file)
  */
 static ssize_t device_write (struct file *filp, const char *buff, size_t len, loff_t * off)
 {
+	struct tx_dev_t *tx;
+	int r;
+
 	if (len != (sizeof (int) * 12)) {
 		printk (KERN_ALERT "Incompatibile data\n");
 		return -EINVAL;
 	}
-
-	struct tx_dev_t *tx = &tx_dev;
-
-	if (!tx)
-		return 0;
+	tx = &tx_dev;
+	if (!tx) return 0;
 
 	/* copy userspace data to kernelspace */
 #ifdef raw_copy_from_user
-	int r = raw_copy_from_user (&tx->chan, buff, len);
+	r = raw_copy_from_user (&tx->chan, buff, len);
 #else
-	int r = copy_from_user (&tx->chan, buff, len);
+	r = copy_from_user (&tx->chan, buff, len);
 #endif
+
 	/* report new values to joystick device */
 	input_report_abs (tx->input_dev, ABS_X, tx->chan[0]);
 	input_report_abs (tx->input_dev, ABS_Y, tx->chan[1]);
@@ -124,6 +125,7 @@ static struct file_operations fops = {
 static int tx_open (struct input_dev *dev)
 {
 	struct tx_dev_t *tx = input_get_drvdata (dev);
+	(void)tx;
 
 	return 0;
 }
@@ -131,11 +133,15 @@ static int tx_open (struct input_dev *dev)
 static void tx_close (struct input_dev *dev)
 {
 	struct tx_dev_t *tx = input_get_drvdata (dev);
+	(void)tx;
 }
 
 static int tx_connect (struct tx_dev_t *tx)
 {
 	int err = -ENODEV;
+	int result;
+	int devno;
+	dev_t dev;
 
 	tx->input_dev = input_allocate_device ();
 
@@ -180,8 +186,7 @@ static int tx_connect (struct tx_dev_t *tx)
 
 	tx->major = DEVICE_MAJOR;
 
-	int result;
-	dev_t dev = MKDEV (tx->major, 0);
+	dev = MKDEV (tx->major, 0);
 
 	/* Figure out our device number. */
 	result = register_chrdev_region (dev, 1, "tx");
@@ -196,7 +201,7 @@ static int tx_connect (struct tx_dev_t *tx)
 	}
 
 	/* Now set up cdev. */
-	int devno = MKDEV (tx->major, 0);
+	devno = MKDEV (tx->major, 0);
 
 	cdev_init (&tx->txdev, &fops);
 
