@@ -1,7 +1,7 @@
 CC	 ?= gcc
 CFLAGS	 ?= -O2
 PREFIX   ?= /usr/local
-WITH_GUI ?= 0
+WITH_GUI ?= 1
 WIN32    ?= 0
 
 BIN_TUI	= ppm2tx
@@ -42,6 +42,7 @@ $(BIN_GUI): $(OBJS) gui.o
 
 install:
 	install $(BIN) $(PREFIX)/bin/
+	install $(BIN_GUI) $(PREFIX)/bin/
 	mkdir -p $(PREFIX)/share/txppm
 	install logo.png $(PREFIX)/share/txppm/
 	install ../LICENSE $(PREFIX)/share/txppm/
@@ -50,6 +51,7 @@ install:
 
 uninstall:
 	rm -f $(PREFIX)/bin/$(BIN)
+	rm -f $(PREFIX)/bin/$(BIN_GUI)
 	rm -rf $(PREFIX)/share/txppm
 	rm -f /usr/share/pixmaps/icon.png
 	rm -f /usr/share/applications/txppm.desktop
