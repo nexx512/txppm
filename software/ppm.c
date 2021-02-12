@@ -19,6 +19,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#define DEBUG 1
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,8 +31,8 @@
 #endif
 #include "sys.h"
 
-#define SAMPLE_RATE       48000
-#define FRAMES_PER_BUFFER 16
+#define SAMPLE_RATE       192000
+#define FRAMES_PER_BUFFER 0
 #define NUM_CHANNELS      1
 
 #define NUM_TX_CHANNELS   6
@@ -65,11 +66,12 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 	static int channel = -1;
 	static unsigned int sampleNum = 0;
 	unsigned int i;
-	
+
 	SAMPLE *samplePtr = (SAMPLE*)inputBuffer;
 	for (i = 0;
 			i < framesPerBuffer;
-			++i, ++sampleNum, samplePtr += NUM_CHANNELS, v_0 = v_1) {
+			++i, ++sampleNum, samplePtr += NUM_CHANNELS, v_0 = v_1
+  ) {
 		v_1 = -*samplePtr;
 
 		// Calculate the threshold between the two extrema
@@ -79,13 +81,14 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 
 		// Trigger pulse measurement on a positive slope
 		if ((v_0 <= v_th) && (v_1 > v_th)) {
+
 			// Calculate the exact time when hitting the threshold
 			PaTime triggerOffset = ((v_th - v_0) / (v_1 - v_0)) / SAMPLE_RATE;
 			PaTime triggerTime = ((float)sampleNum / SAMPLE_RATE) + triggerOffset;
 			PaTime pulseLength = triggerTime - pulseStartTime;
 			pulseStartTime = triggerTime;
 
-			// If the pulse is longer than 2ms it is considered a start pule
+			// If the pulse is longer than 2ms it is considered a start pulse
 			if (pulseLength > 0.0021) {
 				channel = 0;
 				sampleNum = 0;
@@ -241,12 +244,12 @@ void ppm_decode (int fd, int mix)
 			c[3] = (int) (channels[3] * 1280);
 			c[4] = (int) (channels[4] * 996) - 8;
 		} else {
-			c[0] = (int) (channels[0] * 512);
-			c[1] = (int) (channels[1] * 512);
-			c[2] = (int) (channels[2] * 512);
-			c[3] = (int) (channels[3] * 512);
-			c[4] = (int) (channels[4] * 512);
-			c[5] = (int) (channels[5] * 512);
+			c[0] = (int) (channels[0] * 1024);
+			c[1] = (int) (channels[1] * 1024);
+			c[2] = (int) (channels[2] * 1024);
+			c[3] = (int) (channels[3] * 1024);
+			c[4] = (int) (channels[4] * 1024);
+			c[5] = (int) (channels[5] * 1024);
 		}
 
 		for (i = 6; i < NUM_TX_CHANNELS; ++i) {
