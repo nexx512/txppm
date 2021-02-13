@@ -45,6 +45,7 @@ PortAudioStream *stream;
 
 /* can be used for more channels */
 static float channels[NUM_TX_CHANNELS];
+static float channels1[NUM_TX_CHANNELS];
 int c[NUM_TX_CHANNELS];
 
 int app_exit;
@@ -60,48 +61,80 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 	static SAMPLE v_th;
 	static SAMPLE v_0 = 0;
 	SAMPLE v_1;
-	static PaTime pulseStartTime = 0;
-	static int channel = -1;
-	static unsigned int sampleNum = 0;
+	static PaTime pulseStartTime1 = 0;
+  static PaTime pulseStartTime2 = 0;
+	static int channel1 = -1;
+  static int channel2 = -1;
+	static unsigned int sampleNum1 = 0;
+  static unsigned int sampleNum2 = 0;
 	unsigned int i;
 
 	SAMPLE *samplePtr = (SAMPLE*)inputBuffer;
 	for (i = 0;
 			i < framesPerBuffer;
-			++i, ++sampleNum, samplePtr += NUM_CHANNELS, v_0 = v_1
+			++i, ++sampleNum1, ++sampleNum2, samplePtr += NUM_CHANNELS, v_0 = v_1
   ) {
 		v_1 = -*samplePtr;
 
 		// Calculate the threshold between the two extrema
 		v_min = MIN(v_min, v_1);
 		v_max = MAX(v_max, v_1);
-		v_th = (v_max + v_min) / 2;
+		v_th = (v_max + v_min) / 2.;
 
-		// Trigger pulse measurement on a positive slope
-		if ((v_0 <= v_th) && (v_1 > v_th)) {
+    short pos_slope = (v_0 <= v_th) && (v_1 > v_th);
+    short neg_slope = (v_0 >= v_th) && (v_1 < v_th);
 
-			// Calculate the exact time when hitting the threshold
-			PaTime triggerOffset = ((v_th - v_0) / (v_1 - v_0)) / SAMPLE_RATE;
-			PaTime triggerTime = ((float)sampleNum / SAMPLE_RATE) + triggerOffset;
-			PaTime pulseLength = triggerTime - pulseStartTime;
-			pulseStartTime = triggerTime;
+    if (pos_slope || neg_slope) {
+      // Linear interpolation when hitting the threshold
+      PaTime triggerOffset = ((v_th - v_1) / (v_1 - v_0)) / SAMPLE_RATE;
 
-			// If the pulse is longer than 2ms it is considered a start pulse
-			if (pulseLength > 0.0021) {
-				channel = 0;
-				sampleNum = 0;
-				pulseStartTime = triggerOffset;
-			} else if (channel >= 0) {
-				// Store the pulse length in ms in the channel.
-				// According to the spec, the pulse length ranges from 1..2ms
-				channels[channel] = (pulseLength * 1000) - 1.5;
-				channel++;
-				// Prevent channel overflow and ignore exceeding channels
-				if (channel >= NUM_TX_CHANNELS){
-					channel = -1;
-				}
-			}
-		}
+  		// Trigger pulse measurement on a positive slope
+  		if (pos_slope) {
+        PaTime triggerTime = ((float)sampleNum1 / SAMPLE_RATE) - triggerOffset;
+  			PaTime pulseLength = triggerTime - pulseStartTime1;
+  			pulseStartTime1 = triggerTime;
+
+        // If the pulse is longer than 2ms it is considered a start pulse
+  			if (pulseLength > 0.0021) {
+  				channel1 = 0;
+  				sampleNum1 = 0;
+  				pulseStartTime1 = triggerOffset;
+  			} else if (channel1 >= 0) {
+  				// Store the pulse length in ms in the channel.
+  				// According to the spec, the pulse length ranges from 1..2ms
+  				channels1[channel1] = (pulseLength * 1000) - 1.5;
+  				channel1++;
+  				// Prevent channel overflow and ignore exceeding channels
+  				if (channel1 >= NUM_TX_CHANNELS){
+  					channel1 = -1;
+  				}
+  			}
+  		}
+
+      // Trigger second measurement of the same pulse on a negative slope
+  		if (neg_slope) {
+        PaTime triggerTime = ((float)sampleNum2 / SAMPLE_RATE) - triggerOffset;
+        PaTime pulseLength = triggerTime - pulseStartTime2;
+  			pulseStartTime2 = triggerTime;
+
+        // If the pulse is longer than 2ms it is considered a start pulse
+  			if (pulseLength > 0.0021) {
+  				channel2 = 0;
+  				sampleNum2 = 0;
+  				pulseStartTime2 = triggerOffset;
+  			} else if (channel2 >= 0) {
+  				// Store the pulse length in ms in the channel.
+  				// According to the spec, the pulse length ranges from 1..2ms
+  				channels[channel2] = (channels1[channel2] + (pulseLength * 1000) - 1.5) / 2.0;
+  				channel2++;
+  				// Prevent channel overflow and ignore exceeding channels
+  				if (channel2 >= NUM_TX_CHANNELS){
+  					channel2 = -1;
+  				}
+  			}
+  		}
+    }
+
 	}
 
 	return 0;
