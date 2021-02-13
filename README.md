@@ -25,16 +25,6 @@ On a debian derivative system this can be installed with
 $ sudo apt-get install portaudio19-dev
 ```
 
-## Kernel Module installation
-
-Build the kernel module in the `module` directory and install the kernel module.
-
-```
-$ cd module
-$ make
-$ sudo make install
-```
-
 ## Build and install the user program
 
 If you want to also build the graphical user interface set the environment variable `WITH_GUI` to 1.
