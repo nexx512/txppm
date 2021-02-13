@@ -19,8 +19,6 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define DEBUG 1
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <float.h>
@@ -174,7 +172,7 @@ int setup_audio (int dev)
 	inStreamParm.channelCount = NUM_CHANNELS;
 	inStreamParm.hostApiSpecificStreamInfo = NULL;
 	inStreamParm.sampleFormat = paFloat32;
-	inStreamParm.suggestedLatency = pdi->defaultHighInputLatency;
+	inStreamParm.suggestedLatency = pdi->defaultLowInputLatency;
 
 	/* Record some audio. -------------------------------------------- */
 	err = Pa_OpenStream(&stream,
