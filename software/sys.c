@@ -119,34 +119,6 @@ struct sockaddr_in serverSock;
 typedef int socklen_t;
 socklen_t addrlen;
 
-int device_open ()
-{
-	DevName = "\\\\.\\PPJoyIOCTL1";
-
-	/* Open a handle to the control device for the first virtual joystick. */
-	/* Virtual joystick devices are names PPJoyIOCTL1 to PPJoyIOCTL16. */
-	h = CreateFile (DevName, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
-
-	/* Make sure we could open the device! */
-	if (h == INVALID_HANDLE_VALUE) {
-		printf ("CreateFile failed with error code %d trying to open %s device\n",GetLastError(),DevName);
-		return -1;
-	}
-
-	/* Initialise the IOCTL data structure */
-	JoyState.Signature = JOYSTICK_STATE_V1;
-	JoyState.NumAnalog = NUM_ANALOG;	/* Number of analog values */
-	Analog = JoyState.Analog;		/* Keep a pointer to the analog array for easy updating */
-	JoyState.NumDigital = NUM_DIGITAL;	/* Number of digital values */
-	Digital = JoyState.Digital;		/* Digital array */
-
-	printf ("PPJoy virtual joystick Server for TxPPM software -- controlling virtual joystick 1.\n\n");
-
-	Analog[0] = Analog[1] = Analog[2] = Analog[3] = (PPJOY_AXIS_MIN+PPJOY_AXIS_MAX)/2;
-
-	return 0;
-}
-
 int device_write (int fd)
 {
 	Analog[0] = c[0] + (PPJOY_AXIS_MIN+PPJOY_AXIS_MAX)/2;
