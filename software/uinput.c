@@ -39,7 +39,7 @@ int createUinputDevice(){
 
 
 	struct uinput_user_dev uidev = {0};
-	snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "uinput-ppm");
+	snprintf(uidev.name, UINPUT_MAX_NAME_SIZE, "TxPPM");
 
 	for(int i = 0; i < num_axes; ++i){
 		ioctl(fd, UI_SET_ABSBIT, axes[i]);

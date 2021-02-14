@@ -202,7 +202,7 @@ static void start (GtkWidget *widget, gpointer data )
 		gtk_window_set_title(GTK_WINDOW(dialog), "Problem");
 		gint result = gtk_dialog_run(GTK_DIALOG(dialog));
 		gtk_widget_destroy( GTK_WIDGET(dialog) );
-	
+
 		gtk_main_quit ();
 		return;
 	}
@@ -269,7 +269,7 @@ static void destroy (GtkWidget *widget,  gpointer data)
 
 int main (int argc, char *argv[])
 {
-	printf ("TXPPM - ppm2tx v." VERSION " by Jürgen Diez\n");
+	printf ("TxPPM - ppm2tx v." VERSION " by Jürgen Diez\n");
 	printf ("This program comes with ABSOLUTELY NO WARRANTY; "
 		"for details see the LICENSE shipped with this software.\n"
 		"This is free software, and you are welcome to redistribute it "
@@ -287,7 +287,7 @@ int main (int argc, char *argv[])
 	/* create a new window */
 	window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
 
-	gtk_window_set_title (GTK_WINDOW (window), "TXPPM - ppm2tx v." VERSION);
+	gtk_window_set_title (GTK_WINDOW (window), "TxPPM - ppm2tx v." VERSION);
 
 	/* When the window is given the "delete-event" signal (this is given
 	* by the window manager, usually by the "close" option, or on the

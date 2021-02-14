@@ -57,3 +57,6 @@ TXPPM (software), ver. 0.3.8: <Date>
 	Always build the text interface
 	Refactored ppm code to reduce latency and do less memcopy
 	Removed support for portaudio 18
+  Replaced Kernel Module with uinput
+  Sampling algorithm improved with additional measurement on the negative slope
+	Sampling rate increased

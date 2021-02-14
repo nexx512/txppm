@@ -140,7 +140,7 @@ int device_open ()
 	JoyState.NumDigital = NUM_DIGITAL;	/* Number of digital values */
 	Digital = JoyState.Digital;		/* Digital array */
 
-	printf ("PPJoy virtual joystick Server for TXPPM software -- controlling virtual joystick 1.\n\n");
+	printf ("PPJoy virtual joystick Server for TxPPM software -- controlling virtual joystick 1.\n\n");
 
 	Analog[0] = Analog[1] = Analog[2] = Analog[3] = (PPJOY_AXIS_MIN+PPJOY_AXIS_MAX)/2;
 
