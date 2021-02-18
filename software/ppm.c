@@ -90,7 +90,7 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 
   		// Trigger pulse measurement on a positive slope
   		if (pos_slope) {
-        PaTime triggerTime = ((float)sampleNum1 / SAMPLE_RATE) - triggerOffset;
+        PaTime triggerTime = ((float)sampleNum1 / SAMPLE_RATE) + triggerOffset;
   			PaTime pulseLength = triggerTime - pulseStartTime1;
   			pulseStartTime1 = triggerTime;
 
@@ -113,7 +113,7 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 
       // Trigger second measurement of the same pulse on a negative slope
   		if (neg_slope) {
-        PaTime triggerTime = ((float)sampleNum2 / SAMPLE_RATE) - triggerOffset;
+        PaTime triggerTime = ((float)sampleNum2 / SAMPLE_RATE) + triggerOffset;
         PaTime pulseLength = triggerTime - pulseStartTime2;
   			pulseStartTime2 = triggerTime;
 
