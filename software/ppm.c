@@ -34,6 +34,7 @@
 #define NUM_CHANNELS      1
 
 #define NUM_TX_CHANNELS   6
+#define SMOOTH_STRENGTH   2
 
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
@@ -61,14 +62,14 @@ int c[NUM_TX_CHANNELS];
 
 int app_exit;
 
-void reset_measurement (CycleMeasurement *measurement)
+static void reset_measurement (CycleMeasurement *measurement)
 {
   measurement->pulseStartTime = 0;
   measurement->sampleNum = 0;
   measurement->pulse = -1;
 }
 
-void print_error_status (PaStreamCallbackFlags statusFlags)
+static void print_error_status (PaStreamCallbackFlags statusFlags)
 {
   if (statusFlags & paInputUnderflow) {
     fprintf (stderr, "Input underflor error.\n");
@@ -81,7 +82,7 @@ void print_error_status (PaStreamCallbackFlags statusFlags)
   }
 }
 
-short calculate_pulse_length (SAMPLE v_th, SAMPLE v_1, SAMPLE v_diff, CycleMeasurement *measurement)
+static short calculate_pulse_length (SAMPLE v_th, SAMPLE v_1, SAMPLE v_diff, CycleMeasurement *measurement)
 {
   // Linear interpolation of the time when hitting the threshold
   double triggerOffset = ((v_th - v_1) / v_diff) / SAMPLE_RATE;
@@ -110,6 +111,27 @@ short calculate_pulse_length (SAMPLE v_th, SAMPLE v_1, SAMPLE v_diff, CycleMeasu
   return current_pulse;
 }
 
+static float smoothing_with_channel_history (unsigned short channel, float channel_value)
+{
+  static float channel_history_buffer[NUM_TX_CHANNELS][SMOOTH_STRENGTH];
+  static unsigned short buffer_index = 0;
+
+  channel_history_buffer[channel][buffer_index] = channel_value;
+
+  float sum = 0;
+  float weight = 0;
+  for (unsigned short j = 1; j <= SMOOTH_STRENGTH; ++j)
+  {
+    // weighted sum of the previous channel values
+    sum += channel_history_buffer[channel][(buffer_index + j) % SMOOTH_STRENGTH] * j;
+    weight += j;
+  }
+
+  buffer_index = (buffer_index + 1) % SMOOTH_STRENGTH;
+
+  return sum / weight;
+}
+
 static int callback_audio (const void *inputBuffer, void *outputBuffer,
                            unsigned long framesPerBuffer,
                            const PaStreamCallbackTimeInfo *timeInfo,
@@ -124,10 +146,9 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
   static CycleMeasurement pos_slope_measurement = {0, 0, -1};
   static CycleMeasurement neg_slope_measurement = {0, 0, -1};
   static short error = 0;
-	unsigned int i;
 
 	SAMPLE *samplePtr = (SAMPLE*)inputBuffer;
-	for (i = 0;
+	for (unsigned int i = 0;
 			i < framesPerBuffer;
 			++i, ++pos_slope_measurement.sampleNum, ++neg_slope_measurement.sampleNum, samplePtr += NUM_CHANNELS, v_0 = v_1
   ) {
@@ -168,7 +189,7 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 		if ((v_0 >= v_th) && (v_1 < v_th)) {
       short pulse = calculate_pulse_length (v_th, v_1, v_diff, &neg_slope_measurement);
       if (pulse >= 0) {
-        channels[pulse] = (pos_slope_measurement.channels[pulse] + neg_slope_measurement.channels[pulse]) / 2.0;
+        channels[pulse] = smoothing_with_channel_history (pulse, (pos_slope_measurement.channels[pulse] + neg_slope_measurement.channels[pulse]) / 2.0);
       }
     }
 	}
