@@ -38,103 +38,139 @@
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
+#define HIGH_INPUT_ERROR      0x01
+#define LOW_SAMPLE_RATE_ERROR 0x02
+
+#define MEASUREMENT_COMPLETE  0x01
+
 typedef float SAMPLE;
 
 typedef void PortAudioStream;
 PortAudioStream *stream;
 
+typedef struct CycleMeasurement {
+  double pulseStartTime;
+  unsigned int sampleNum;
+  int pulse;
+  float channels[NUM_TX_CHANNELS];
+} CycleMeasurement;
+
 /* can be used for more channels */
 static float channels[NUM_TX_CHANNELS];
-static float channels1[NUM_TX_CHANNELS];
 int c[NUM_TX_CHANNELS];
 
 int app_exit;
 
+void reset_measurement (CycleMeasurement *measurement)
+{
+  measurement->pulseStartTime = 0;
+  measurement->sampleNum = 0;
+  measurement->pulse = -1;
+}
+
+void print_error_status (PaStreamCallbackFlags statusFlags)
+{
+  if (statusFlags & paInputUnderflow) {
+    fprintf (stderr, "Input underflor error.\n");
+  }
+  if (statusFlags & paInputOverflow) {
+    fprintf (stderr, "Input overflow error.\n");
+  }
+  if (statusFlags & ~(paInputUnderflow | paInputOverflow)) {
+    fprintf (stderr, "Sampling Error %ld\n", statusFlags);
+  }
+}
+
+short calculate_pulse_length (SAMPLE v_th, SAMPLE v_1, SAMPLE v_diff, CycleMeasurement *measurement)
+{
+  // Linear interpolation of the time when hitting the threshold
+  double triggerOffset = ((v_th - v_1) / v_diff) / SAMPLE_RATE;
+  double triggerTime = ((double)measurement->sampleNum / SAMPLE_RATE) + triggerOffset;
+  double pulseLength = triggerTime - measurement->pulseStartTime;
+  measurement->pulseStartTime = triggerTime;
+
+  short current_pulse = -1;
+
+  // If the pulse is longer than 2ms it is considered a start pulse
+  if (pulseLength > 0.0021) {
+    measurement->pulse = 0;
+    measurement->sampleNum = 0;
+    measurement->pulseStartTime = triggerOffset;
+  } else if (measurement->pulse >= 0) {
+    // Store the pulse length in ms in the channel.
+    // According to the spec, the pulse length ranges from 1..2ms
+    measurement->channels[measurement->pulse] = (pulseLength * 1000) - 1.5;
+    current_pulse = measurement->pulse;
+    measurement->pulse++;
+    // Prevent channel overflow and ignore exceeding channels
+    if (measurement->pulse >= NUM_TX_CHANNELS) {
+      measurement->pulse = -1;
+    }
+  }
+  return current_pulse;
+}
 
 static int callback_audio (const void *inputBuffer, void *outputBuffer,
                            unsigned long framesPerBuffer,
                            const PaStreamCallbackTimeInfo *timeInfo,
-                           PaStreamCallbackFlags b, void *userData)
+                           PaStreamCallbackFlags statusFlags, void *userData)
 {
 	static SAMPLE v_min = FLT_MAX;
 	static SAMPLE v_max = -FLT_MAX;
-	static SAMPLE v_th;
+	SAMPLE v_th;
 	static SAMPLE v_0 = 0;
 	SAMPLE v_1;
-	static PaTime pulseStartTime1 = 0;
-  static PaTime pulseStartTime2 = 0;
-	static int channel1 = -1;
-  static int channel2 = -1;
-	static unsigned int sampleNum1 = 0;
-  static unsigned int sampleNum2 = 0;
+  SAMPLE v_diff;
+  static CycleMeasurement pos_slope_measurement = {0, 0, -1};
+  static CycleMeasurement neg_slope_measurement = {0, 0, -1};
+  static short error = 0;
 	unsigned int i;
 
 	SAMPLE *samplePtr = (SAMPLE*)inputBuffer;
 	for (i = 0;
 			i < framesPerBuffer;
-			++i, ++sampleNum1, ++sampleNum2, samplePtr += NUM_CHANNELS, v_0 = v_1
+			++i, ++pos_slope_measurement.sampleNum, ++neg_slope_measurement.sampleNum, samplePtr += NUM_CHANNELS, v_0 = v_1
   ) {
-		v_1 = -*samplePtr;
+    if (statusFlags != 0) {
+      print_error_status (statusFlags);
+      fprintf (stderr, "Resetting measurements.\n");
 
-		// Calculate the threshold between the two extrema
+      reset_measurement (&pos_slope_measurement);
+      reset_measurement (&neg_slope_measurement);
+      return 0;
+    }
+
+		v_1 = *samplePtr;
+
+    // Calculate the threshold between the two extrema
 		v_min = MIN(v_min, v_1);
 		v_max = MAX(v_max, v_1);
 		v_th = (v_max + v_min) / 2.;
+    v_diff = (v_1 - v_0);
 
-    short pos_slope = (v_0 <= v_th) && (v_1 > v_th);
-    short neg_slope = (v_0 >= v_th) && (v_1 < v_th);
-
-    if (pos_slope || neg_slope) {
-      // Linear interpolation when hitting the threshold
-      PaTime triggerOffset = ((v_th - v_1) / (v_1 - v_0)) / SAMPLE_RATE;
-
-  		// Trigger pulse measurement on a positive slope
-  		if (pos_slope) {
-        PaTime triggerTime = ((float)sampleNum1 / SAMPLE_RATE) + triggerOffset;
-  			PaTime pulseLength = triggerTime - pulseStartTime1;
-  			pulseStartTime1 = triggerTime;
-
-        // If the pulse is longer than 2ms it is considered a start pulse
-  			if (pulseLength > 0.0021) {
-  				channel1 = 0;
-  				sampleNum1 = 0;
-  				pulseStartTime1 = triggerOffset;
-  			} else if (channel1 >= 0) {
-  				// Store the pulse length in ms in the channel.
-  				// According to the spec, the pulse length ranges from 1..2ms
-  				channels1[channel1] = (pulseLength * 1000) - 1.5;
-  				channel1++;
-  				// Prevent channel overflow and ignore exceeding channels
-  				if (channel1 >= NUM_TX_CHANNELS){
-  					channel1 = -1;
-  				}
-  			}
-  		}
-
-      // Trigger second measurement of the same pulse on a negative slope
-  		if (neg_slope) {
-        PaTime triggerTime = ((float)sampleNum2 / SAMPLE_RATE) + triggerOffset;
-        PaTime pulseLength = triggerTime - pulseStartTime2;
-  			pulseStartTime2 = triggerTime;
-
-        // If the pulse is longer than 2ms it is considered a start pulse
-  			if (pulseLength > 0.0021) {
-  				channel2 = 0;
-  				sampleNum2 = 0;
-  				pulseStartTime2 = triggerOffset;
-  			} else if (channel2 >= 0) {
-  				// Store the pulse length in ms in the channel.
-  				// According to the spec, the pulse length ranges from 1..2ms
-  				channels[channel2] = (channels1[channel2] + (pulseLength * 1000) - 1.5) / 2.0;
-  				channel2++;
-  				// Prevent channel overflow and ignore exceeding channels
-  				if (channel2 >= NUM_TX_CHANNELS){
-  					channel2 = -1;
-  				}
-  			}
-  		}
+    if (!(error & HIGH_INPUT_ERROR) && (v_1 <= -0.9 || v_1 >= 0.9 )) {
+      fprintf (stderr, "Input signal too high. Please reduce input gain and restart.");
+      error |= HIGH_INPUT_ERROR;
     }
 
+    if (!(error & LOW_SAMPLE_RATE_ERROR) && v_diff >= 1.9) {
+      fprintf (stderr, "Sample rate too low for accurate meassurements. Try to increase the sample rate and restart.");
+      error |= LOW_SAMPLE_RATE_ERROR;
+    }
+
+		// Trigger pulse measurement on a positive slope
+		if ((v_0 <= v_th) && (v_1 > v_th)) {
+      calculate_pulse_length (v_th, v_1, v_diff, &pos_slope_measurement);
+		}
+
+    // Trigger second measurement of the same pulse on a negative slope
+    // The positive slope must be seen before the negative slope
+		if ((v_0 >= v_th) && (v_1 < v_th)) {
+      short pulse = calculate_pulse_length (v_th, v_1, v_diff, &neg_slope_measurement);
+      if (pulse >= 0) {
+        channels[pulse] = (pos_slope_measurement.channels[pulse] + neg_slope_measurement.channels[pulse]) / 2.0;
+      }
+    }
 	}
 
 	return 0;
