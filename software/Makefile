@@ -1,7 +1,7 @@
 CC	 ?= gcc
 CFLAGS	 ?= -O2
-PREFIX   ?= /usr/local
-WITH_GUI ?= 0
+PREFIX   ?= /usr
+WITH_GUI ?= 1
 WIN32    ?= 0
 
 BIN_TUI	= ppm2tx
@@ -48,11 +48,11 @@ install:
 	mkdir -p $(PREFIX)/share/txppm
 	install logo.png $(PREFIX)/share/txppm/
 	install ../LICENSE $(PREFIX)/share/txppm/
-	install icon.png /usr/share/pixmaps/
+	install txppm-icon.png /usr/share/pixmaps/
 	install txppm.desktop /usr/share/applications/
 
 uninstall:
 	rm -f $(PREFIX)/bin/$(BIN)
 	rm -rf $(PREFIX)/share/txppm
-	rm -f /usr/share/pixmaps/icon.png
+	rm -f /usr/share/pixmaps/txppm-icon.png
 	rm -f /usr/share/applications/txppm.desktop

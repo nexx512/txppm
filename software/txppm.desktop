@@ -4,6 +4,6 @@ Comment=RC Transmitter PPM Signal to joystick converter
 Exec=/usr/bin/ppm2tx-gui
 Terminal=false
 Type=Application
-Icon=icon.png
+Icon=txppm-icon.png
 Encoding=UTF-8
 Categories=Utility
