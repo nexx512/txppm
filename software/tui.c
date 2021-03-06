@@ -43,8 +43,10 @@ int main (int argc, char **argv)
 			char *s = get_audio_name (i);
 
 			if (s)
-				printf("DeviceID (%d) name: %s.\n", i, s);
+				printf("  DeviceID (%d) name: %s.\n", i, s);
 		}
+
+		printf("\nAvailable Mixings: \n  0  No mix\n  1  CCPM 120°\n  2  CCPM 120° (Spektrum)\n");
 
 		return 0;
 	}

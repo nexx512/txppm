@@ -24,8 +24,10 @@
 #include <float.h>
 #ifndef __WIN32__
 #include <portaudio.h>
+#include <unistd.h>
 #else
 #include "lib/portaudio.h"
+#include <Windows.h>
 #endif
 #include "sys.h"
 
@@ -34,7 +36,6 @@
 #define NUM_CHANNELS      1
 
 #define NUM_TX_CHANNELS   6
-#define SMOOTH_STRENGTH   2
 
 #define MIN(a,b)  ((a) < (b) ? (a) : (b))
 #define MAX(a,b)  ((a) > (b) ? (a) : (b))
@@ -42,8 +43,6 @@
 
 #define HIGH_INPUT_ERROR      0x01
 #define LOW_SAMPLE_RATE_ERROR 0x02
-
-#define MEASUREMENT_COMPLETE  0x01
 
 typedef float SAMPLE;
 
@@ -108,27 +107,6 @@ static void calculate_pulse_length (SAMPLE v_th, SAMPLE v_1, SAMPLE v_diff, Cycl
   }
 }
 
-static float smoothing_with_channel_history (unsigned short channel, float channel_value)
-{
-  static float channel_history_buffer[NUM_TX_CHANNELS][SMOOTH_STRENGTH];
-  static unsigned short buffer_index = 0;
-
-  channel_history_buffer[channel][buffer_index] = channel_value;
-
-  float sum = 0;
-  float weight = 0;
-  for (unsigned short j = 1; j <= SMOOTH_STRENGTH; ++j)
-  {
-    // weighted sum of the previous channel values
-    sum += channel_history_buffer[channel][(buffer_index + j) % SMOOTH_STRENGTH] * j;
-    weight += j;
-  }
-
-  buffer_index = (buffer_index + 1) % SMOOTH_STRENGTH;
-
-  return sum / weight;
-}
-
 static int callback_audio (const void *inputBuffer, void *outputBuffer,
                            unsigned long framesPerBuffer,
                            const PaStreamCallbackTimeInfo *timeInfo,
@@ -174,7 +152,7 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
         error |= HIGH_INPUT_ERROR;
       }
 
-      if (!(error & LOW_SAMPLE_RATE_ERROR) && ABS(v_diff) >= 0.9 * (v_max - v_min)) {
+      if (!(error & LOW_SAMPLE_RATE_ERROR) && ABS(v_diff) >= 0.5 * (v_max - v_min)) {
         fprintf (stderr, "Sample rate too low for accurate meassurements. Try to increase the sample rate and restart.\n");
         error |= LOW_SAMPLE_RATE_ERROR;
       }
@@ -209,8 +187,8 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 
       if (pos_slope_measurement.pulse == neg_slope_measurement.pulse && pos_slope_measurement.pulse >= 0) {
         initialized = 1;
-        channels[pos_slope_measurement.pulse] = smoothing_with_channel_history (pos_slope_measurement.pulse,
-          (pos_slope_measurement.channels[pos_slope_measurement.pulse] + neg_slope_measurement.channels[neg_slope_measurement.pulse]) / 2.0);
+        channels[pos_slope_measurement.pulse] =
+          (pos_slope_measurement.channels[pos_slope_measurement.pulse] + neg_slope_measurement.channels[neg_slope_measurement.pulse]);
       }
 
     }
@@ -327,7 +305,7 @@ void ppm_decode (int fd, int mix)
 
 	while (!app_exit) {
 		// Reduce the CPU load by suspending the task
-		Pa_Sleep(1);
+		sleep(0.005);
 
 		if (mix == 1) {
 /*
@@ -354,16 +332,13 @@ void ppm_decode (int fd, int mix)
 			c[3] = (int) (channels[3] * 1280);
 			c[4] = (int) (channels[4] * 996) - 8;
 		} else {
-			c[0] = (int) (channels[0] * 1024);
-			c[1] = (int) (channels[1] * 1024);
-			c[2] = (int) (channels[2] * 1024);
-			c[3] = (int) (channels[3] * 1024);
-			c[4] = (int) (channels[4] * 1024);
-			c[5] = (int) (channels[5] * 1024);
+      for (i = 0; i < 6; ++i) {
+        c[i] = (int) (channels[i] * 1024);
+      }
 		}
 
 		for (i = 6; i < NUM_TX_CHANNELS; ++i) {
-			c[i] = (int) (channels[i] * 512);
+			c[i] = (int) (channels[i] * 1024);
 		}
 
 		if (device_write (fd) == -1)

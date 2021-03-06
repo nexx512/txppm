@@ -52,8 +52,9 @@ static gboolean progress_timeout (gpointer data)
 {
 	float ch[NUM_TX_CHANNELS];
 	int i;
+	char value[10];
 	for (i = 0; i < NUM_TX_CHANNELS; i ++) {
-		ch[i] = (float) (c[i]+512)/1000;
+		ch[i] = (float) (c[i]+1024)/2048;
 
 		if (ch[i] < 0)
 			ch[i] = 0;
@@ -61,6 +62,8 @@ static gboolean progress_timeout (gpointer data)
 			ch[i] = 1;
 		/* Set the new value */
 		gtk_progress_bar_set_fraction (GTK_PROGRESS_BAR (pbar_ch[i]), ch[i]);
+		sprintf(value, "%d", c[i]);
+		gtk_progress_bar_set_text (GTK_PROGRESS_BAR (pbar_ch[i]), value);
 	}
 
 	/* As this is a timeout function, return TRUE so that it
@@ -406,12 +409,17 @@ int main (int argc, char *argv[])
 
 	gtk_toggle_button_set_active (GTK_TOGGLE_BUTTON (channels), chshow ? TRUE : FALSE);
 
+  GtkRequisition req;
+	GtkWidget *titleLabel = gtk_label_new("-0000");
+  gtk_widget_size_request(titleLabel, &req);
+
 	gtk_box_pack_start (GTK_BOX (box2), channels, TRUE, FALSE, 0);
 	/** CHANNELS **/
 	int l;
 	for (l = 0; l < NUM_TX_CHANNELS; l ++) {
 		pbar_ch[l] = gtk_progress_bar_new ();
 		gtk_progress_bar_set_orientation (GTK_PROGRESS_BAR (pbar_ch[l]), GTK_PROGRESS_BOTTOM_TO_TOP);
+		gtk_widget_set_size_request (pbar_ch[l], req.width, -1);
 		gtk_box_pack_start (GTK_BOX (box2), pbar_ch[l], TRUE, FALSE, 0);
 	}
 	/** BUTTON **/
