@@ -29,15 +29,16 @@
 #endif
 #include "sys.h"
 
-#define SAMPLE_RATE       192000
+#define SAMPLE_RATE       96000
 #define FRAMES_PER_BUFFER 0
 #define NUM_CHANNELS      1
 
 #define NUM_TX_CHANNELS   6
 #define SMOOTH_STRENGTH   2
 
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define MIN(a,b)  ((a) < (b) ? (a) : (b))
+#define MAX(a,b)  ((a) > (b) ? (a) : (b))
+#define ABS(x)    (((x) < 0) ? (-x) : (x))
 
 #define HIGH_INPUT_ERROR      0x01
 #define LOW_SAMPLE_RATE_ERROR 0x02
@@ -82,15 +83,13 @@ static void print_error_status (PaStreamCallbackFlags statusFlags)
   }
 }
 
-static short calculate_pulse_length (SAMPLE v_th, SAMPLE v_1, SAMPLE v_diff, CycleMeasurement *measurement)
+static void calculate_pulse_length (SAMPLE v_th, SAMPLE v_1, SAMPLE v_diff, CycleMeasurement *measurement)
 {
   // Linear interpolation of the time when hitting the threshold
   double triggerOffset = ((v_th - v_1) / v_diff) / SAMPLE_RATE;
   double triggerTime = ((double)measurement->sampleNum / SAMPLE_RATE) + triggerOffset;
   double pulseLength = triggerTime - measurement->pulseStartTime;
   measurement->pulseStartTime = triggerTime;
-
-  short current_pulse = -1;
 
   // If the pulse is longer than 2ms it is considered a start pulse
   if (pulseLength > 0.0021) {
@@ -101,14 +100,12 @@ static short calculate_pulse_length (SAMPLE v_th, SAMPLE v_1, SAMPLE v_diff, Cyc
     // Store the pulse length in ms in the channel.
     // According to the spec, the pulse length ranges from 1..2ms
     measurement->channels[measurement->pulse] = (pulseLength * 1000) - 1.5;
-    current_pulse = measurement->pulse;
     measurement->pulse++;
     // Prevent channel overflow and ignore exceeding channels
     if (measurement->pulse >= NUM_TX_CHANNELS) {
       measurement->pulse = -1;
     }
   }
-  return current_pulse;
 }
 
 static float smoothing_with_channel_history (unsigned short channel, float channel_value)
@@ -146,6 +143,7 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
   static CycleMeasurement pos_slope_measurement = {0, 0, -1};
   static CycleMeasurement neg_slope_measurement = {0, 0, -1};
   static short error = 0;
+  static short initialized = 0;
 
 	SAMPLE *samplePtr = (SAMPLE*)inputBuffer;
 	for (unsigned int i = 0;
@@ -158,6 +156,7 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 
       reset_measurement (&pos_slope_measurement);
       reset_measurement (&neg_slope_measurement);
+
       return 0;
     }
 
@@ -169,28 +168,51 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
 		v_th = (v_max + v_min) / 2.;
     v_diff = (v_1 - v_0);
 
-    if (!(error & HIGH_INPUT_ERROR) && (v_1 <= -0.9 || v_1 >= 0.9 )) {
-      fprintf (stderr, "Input signal too high. Please reduce input gain and restart.");
-      error |= HIGH_INPUT_ERROR;
-    }
-
-    if (!(error & LOW_SAMPLE_RATE_ERROR) && v_diff >= 1.9) {
-      fprintf (stderr, "Sample rate too low for accurate meassurements. Try to increase the sample rate and restart.");
-      error |= LOW_SAMPLE_RATE_ERROR;
-    }
-
-		// Trigger pulse measurement on a positive slope
-		if ((v_0 <= v_th) && (v_1 > v_th)) {
-      calculate_pulse_length (v_th, v_1, v_diff, &pos_slope_measurement);
-		}
-
-    // Trigger second measurement of the same pulse on a negative slope
-    // The positive slope must be seen before the negative slope
-		if ((v_0 >= v_th) && (v_1 < v_th)) {
-      short pulse = calculate_pulse_length (v_th, v_1, v_diff, &neg_slope_measurement);
-      if (pulse >= 0) {
-        channels[pulse] = smoothing_with_channel_history (pulse, (pos_slope_measurement.channels[pulse] + neg_slope_measurement.channels[pulse]) / 2.0);
+    if (initialized) {
+      if (!(error & HIGH_INPUT_ERROR) && (v_min == -1 || v_max == 1 )) {
+        fprintf (stderr, "Input signal too high. Please reduce input gain and restart.\n");
+        error |= HIGH_INPUT_ERROR;
       }
+
+      if (!(error & LOW_SAMPLE_RATE_ERROR) && ABS(v_diff) >= 0.9 * (v_max - v_min)) {
+        fprintf (stderr, "Sample rate too low for accurate meassurements. Try to increase the sample rate and restart.\n");
+        error |= LOW_SAMPLE_RATE_ERROR;
+      }
+    }
+
+
+    /*
+       pos slope
+           :  neg slope
+           :      :                         |<-        > 2ms      ->|
+           :______:                   ______                         _____
+       ____|      |__________________|      |___________..._________|     |
+
+           |<-        pulse        ->|
+           |<-                          cycle                     ->|
+    */
+
+    unsigned short pos_slope = (v_0 <= v_th) && (v_1 > v_th);
+    unsigned short neg_slope = (v_0 >= v_th) && (v_1 < v_th);
+
+    if (pos_slope || neg_slope) {
+
+  		// Trigger pulse measurement on a positive slope
+  		if (pos_slope) {
+        calculate_pulse_length (v_th, v_1, v_diff, &pos_slope_measurement);
+  		}
+
+      // Trigger second measurement of the same pulse on a negative slope
+  		if (neg_slope) {
+        calculate_pulse_length (v_th, v_1, v_diff, &neg_slope_measurement);
+      }
+
+      if (pos_slope_measurement.pulse == neg_slope_measurement.pulse && pos_slope_measurement.pulse >= 0) {
+        initialized = 1;
+        channels[pos_slope_measurement.pulse] = smoothing_with_channel_history (pos_slope_measurement.pulse,
+          (pos_slope_measurement.channels[pos_slope_measurement.pulse] + neg_slope_measurement.channels[neg_slope_measurement.pulse]) / 2.0);
+      }
+
     }
 	}
 
