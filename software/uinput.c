@@ -24,10 +24,10 @@ void setAxes(int fd, int* data, int size){
 
 int createUinputDevice(){
 	int fd = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
-	
+
 	if(fd < 0) {
 		fd = open("/dev/input/uinput", O_WRONLY | O_NONBLOCK);
-		
+
 		if(fd < 0){
 			printf("Couldn't open uinput.\n");
 			exit(EXIT_FAILURE);
@@ -44,8 +44,8 @@ int createUinputDevice(){
 	for(int i = 0; i < num_axes; ++i){
 		ioctl(fd, UI_SET_ABSBIT, axes[i]);
 
-		uidev.absmin[axes[i]] = -256;
-		uidev.absmax[axes[i]] = 256;
+		uidev.absmin[axes[i]] = -1024;
+		uidev.absmax[axes[i]] = 1024;
 	}
 
 	ret = write(fd, &uidev, sizeof(uidev));
@@ -57,4 +57,3 @@ int createUinputDevice(){
 void closeInputDevice(int fd){
 	ioctl(fd, UI_DEV_DESTROY);
 }
-	
