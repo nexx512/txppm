@@ -82,7 +82,7 @@ static void print_error_status (PaStreamCallbackFlags statusFlags)
   }
 }
 
-static void calculate_pulse_length (SAMPLE v_th, SAMPLE v_1, SAMPLE v_diff, CycleMeasurement *measurement)
+static inline void calculate_pulse_length (SAMPLE v_th, SAMPLE v_1, SAMPLE v_diff, CycleMeasurement *measurement)
 {
   // Linear interpolation of the time when hitting the threshold
   double triggerOffset = ((v_th - v_1) / v_diff) / SAMPLE_RATE;
@@ -147,12 +147,12 @@ static int callback_audio (const void *inputBuffer, void *outputBuffer,
     v_diff = (v_1 - v_0);
 
     if (initialized) {
-      if (!(error & HIGH_INPUT_ERROR) && (v_min == -1 || v_max == 1 )) {
+      if ((v_min == -1 || v_max == 1 ) && !(error & HIGH_INPUT_ERROR)) {
         fprintf (stderr, "Input signal too high. Please reduce input gain and restart.\n");
         error |= HIGH_INPUT_ERROR;
       }
 
-      if (!(error & LOW_SAMPLE_RATE_ERROR) && ABS(v_diff) >= 0.5 * (v_max - v_min)) {
+      if (ABS(v_diff) >= 0.5 * (v_max - v_min) && !(error & LOW_SAMPLE_RATE_ERROR)) {
         fprintf (stderr, "Sample rate too low for accurate meassurements. Try to increase the sample rate and restart.\n");
         error |= LOW_SAMPLE_RATE_ERROR;
       }
