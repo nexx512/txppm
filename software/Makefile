@@ -1,6 +1,6 @@
 CC	 ?= gcc
 CFLAGS	 ?= -O2
-PREFIX   ?= /usr
+PREFIX   ?= /usr/local
 WITH_GUI ?= 1
 WIN32    ?= 0
 
